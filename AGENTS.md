@@ -76,6 +76,8 @@ theme persisted under `h4a:theme`. All UI text is German.
   `config.js` (`ACCESS_HASH`); Secret nur im Einladungslink, **nicht** im Repo. Reine
   Hürde, kein echter Schutz. `index.html` hat `noindex`.
 - Dark/Light-Toggle im Header (`data-theme`, `h4a:theme`); flackerfreies Init-Script in `index.html`.
+- PWA: `public/manifest.webmanifest` + Icons unter `public/icons/` (aus `misc/app-icon.png`
+  generiert), iOS-Metas in `index.html`, Safe-Area in `index.css`. Kein Service Worker.
 - Git: `main`, remote `origin` = `https://github.com/rssoft2/handball-ergebnisse-bwhv`.
 - Hosting: **GitHub Pages** via Actions → https://rssoft2.github.io/handball-ergebnisse-bwhv/
 

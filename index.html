@@ -8,7 +8,12 @@
     />
     <meta name="theme-color" content="#0a1326" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Handball BW" />    <meta
       name="description"
       content="Handball-Ergebnisse, Tabelle und Spielplan für Baden-Württemberg"
     />
@@ -27,6 +32,8 @@
             t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
           }
           document.documentElement.dataset.theme = t
+          var bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+          if (bar) bar.setAttribute('content', t === 'dark' ? 'black-translucent' : 'default')
         } catch (e) {}
       })()
     </script>

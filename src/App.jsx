@@ -22,6 +22,8 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+    if (bar) bar.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default')
     try {
       window.localStorage.setItem('h4a:theme', theme)
     } catch {

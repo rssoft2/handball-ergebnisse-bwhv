@@ -85,6 +85,16 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Standalone-PWA auf iOS (black-translucent): Header/Footer unter der
+   Statusleiste bzw. dem Home-Indikator freihalten. */
+header {
+  padding-top: env(safe-area-inset-top);
+}
+
+footer {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 body {
   margin: 0;
   background: var(--bg);

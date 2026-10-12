@@ -1,0 +1,14 @@
+{
+  "name": "Handball-Ergebnisse BWHV",
+  "short_name": "Handball BW",
+  "description": "Handball-Ergebnisse, Tabelle und Spielplan für Baden-Württemberg",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a1326",
+  "background_color": "#0a1326",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
