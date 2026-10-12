@@ -24,6 +24,12 @@ export default function Header({ meta, onRefresh, loading, onBack, theme, onTogg
           </button>
         ) : null}
 
+        <img
+          src={`${import.meta.env.BASE_URL}icons/icon-64.png`}
+          alt=""
+          className="h-9 w-9 shrink-0 rounded-lg"
+        />
+
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h1 className="truncate font-head text-lg font-bold text-ink">
