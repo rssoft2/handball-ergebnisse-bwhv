@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Schlankere Auswahl-/Scroll-Elemente auf Mobilgeräten */
+select,
+button,
+input {
+  font: inherit;
+}
