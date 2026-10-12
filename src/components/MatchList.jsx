@@ -9,7 +9,7 @@ export default function MatchList({ games, favoriteTeams, emptyText, initialLimi
 
   if (games.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+      <div className="rounded-2xl border border-dashed border-line px-4 py-10 text-center text-sm text-muted">
         {emptyText}
       </div>
     )
@@ -25,11 +25,9 @@ export default function MatchList({ games, favoriteTeams, emptyText, initialLimi
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          className="w-full rounded-2xl border border-line bg-surface py-2.5 text-sm font-semibold text-accent transition hover:bg-surface2 active:scale-[0.99]"
         >
-          {expanded
-            ? 'Weniger anzeigen'
-            : `Alle ${games.length} anzeigen`}
+          {expanded ? 'Weniger anzeigen' : `Alle ${games.length} anzeigen`}
         </button>
       ) : null}
     </div>

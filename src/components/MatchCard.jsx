@@ -4,13 +4,7 @@ import { isFavoriteTeam } from '../utils/teams.js'
 
 function TeamName({ name, favorite }) {
   return (
-    <span
-      className={
-        favorite
-          ? 'font-bold text-amber-700 dark:text-amber-300'
-          : 'font-medium text-slate-800 dark:text-slate-100'
-      }
-    >
+    <span className={favorite ? 'font-bold text-favink' : 'font-medium text-ink'}>
       {name}
     </span>
   )
@@ -29,13 +23,11 @@ export default function MatchCard({ game, favoriteTeams }) {
 
   return (
     <div
-      className={`rounded-xl border p-3 shadow-sm transition ${
-        isFav
-          ? 'border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10'
-          : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+      className={`rounded-2xl border p-3 shadow-sm transition ${
+        isFav ? 'border-favline bg-favbg' : 'border-line bg-surface'
       }`}
     >
-      <div className="mb-2 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted">
         <span className="font-medium">
           {game.weekday ? `${game.weekday}, ` : ''}
           {formatDate(game.date)}
@@ -54,13 +46,11 @@ export default function MatchCard({ game, favoriteTeams }) {
           <TeamName name={game.home} favorite={homeFav} />
         </div>
         <div className="shrink-0 text-center">
-          <div className="rounded-lg bg-slate-100 px-2.5 py-1 text-base font-bold tabular-nums text-slate-900 dark:bg-slate-800 dark:text-slate-50">
+          <div className="rounded-lg bg-surface2 px-2.5 py-1 text-base font-bold tabular-nums text-ink">
             {result}
           </div>
           {halftime ? (
-            <div className="mt-0.5 text-[10px] tabular-nums text-slate-400">
-              ({halftime})
-            </div>
+            <div className="mt-0.5 text-[10px] tabular-nums text-faint">({halftime})</div>
           ) : null}
         </div>
         <div className="min-w-0 flex-1 text-left">
@@ -69,7 +59,7 @@ export default function MatchCard({ game, favoriteTeams }) {
       </div>
 
       {(game.venue || game.town) && (
-        <div className="mt-2 truncate text-center text-xs text-slate-400 dark:text-slate-500">
+        <div className="mt-2 truncate text-center text-xs text-faint">
           {[game.venue, game.town].filter(Boolean).join(', ')}
         </div>
       )}
@@ -80,7 +70,7 @@ export default function MatchCard({ game, favoriteTeams }) {
             href={`${REPORT_BASE}${game.reportId}`}
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
+            className="text-xs font-medium text-accent hover:underline"
           >
             Spielbericht öffnen
           </a>

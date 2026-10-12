@@ -1,7 +1,7 @@
 function Spinner() {
   return (
     <svg
-      className="h-5 w-5 animate-spin text-slate-400"
+      className="h-5 w-5 animate-spin text-faint"
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"
@@ -26,7 +26,7 @@ function Spinner() {
 export default function StateMessage({ status, error, onRetry, emptyText }) {
   if (status === 'loading') {
     return (
-      <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-10 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+      <div className="flex items-center justify-center gap-3 rounded-2xl border border-line bg-surface px-4 py-10 text-muted">
         <Spinner />
         <span>Daten werden geladen …</span>
       </div>
@@ -35,13 +35,9 @@ export default function StateMessage({ status, error, onRetry, emptyText }) {
 
   if (status === 'error') {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center dark:border-red-900/60 dark:bg-red-950/40">
-        <p className="font-medium text-red-700 dark:text-red-300">
-          Daten konnten nicht geladen werden
-        </p>
-        {error ? (
-          <p className="mt-1 text-sm text-red-600/80 dark:text-red-300/80">{error}</p>
-        ) : null}
+      <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-6 text-center">
+        <p className="font-medium text-red-600">Daten konnten nicht geladen werden</p>
+        {error ? <p className="mt-1 text-sm text-red-500/90">{error}</p> : null}
         {onRetry ? (
           <button
             type="button"
@@ -57,7 +53,7 @@ export default function StateMessage({ status, error, onRetry, emptyText }) {
 
   if (emptyText) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+      <div className="rounded-2xl border border-dashed border-line px-4 py-10 text-center text-sm text-muted">
         {emptyText}
       </div>
     )
