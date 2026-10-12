@@ -57,7 +57,7 @@ export default function App() {
         meta={
           showingDetail
             ? data?.meta
-            : { name: 'Handball-Ergebnisse', subtitle: 'Baden-Württemberg · Bezirksligen' }
+            : { name: 'Handball-Ergebnisse', subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein' }
         }
         onBack={showingDetail ? () => setSelected('') : undefined}
         onRefresh={showingDetail ? detail.reload : undefined}
