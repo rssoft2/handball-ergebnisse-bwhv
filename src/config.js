@@ -13,3 +13,11 @@ export const CACHE_TTL_MS = 5 * 60 * 1000
 
 // Basis-Link zu den öffentlichen Spielberichten
 export const REPORT_BASE = 'https://spo.handball4all.de/misc/sboPublicReports.php?sGID='
+
+// Einfache Zugangshürde: Zugang nur mit ?k=<secret>. Es liegt nur der
+// SHA-256-Hash im Code, das Secret selbst wird nicht ausgeliefert.
+// Hinweis: reine Hürde, kein echter Schutz (Bundle/URL sind auslesbar).
+export const ACCESS_PARAM = 'k'
+export const ACCESS_HASH =
+  'a9049ec1e706542bc3231b8d8f40a462102ec72b16ad0f2468af97c6a89574e6'
+export const ACCESS_STORAGE_KEY = 'h4a:key'
