@@ -71,6 +71,10 @@ theme persisted under `h4a:theme`. All UI text is German.
   Tabelle, Kommende Spiele). Aktuelle Spiele aufsteigend, initial nur die letzten 7 Tage,
   Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
 - Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.
+- Zugangshürde: `KeyGate` verlangt `?k=<secret>` (sonst „Kein Zugang"), merkt sich die
+  Freigabe unter `h4a:key`, `k` bleibt in der URL. Nur der SHA-256-Hash steht in
+  `config.js` (`ACCESS_HASH`); Secret nur im Einladungslink, **nicht** im Repo. Reine
+  Hürde, kein echter Schutz. `index.html` hat `noindex`.
 - Dark/Light-Toggle im Header (`data-theme`, `h4a:theme`); flackerfreies Init-Script in `index.html`.
 - Git: `main`, remote `origin` = `https://github.com/rssoft2/handball-ergebnisse-bwhv`.
 - Hosting: **GitHub Pages** via Actions → https://rssoft2.github.io/handball-ergebnisse-bwhv/
