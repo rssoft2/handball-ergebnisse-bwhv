@@ -69,7 +69,7 @@ export default function StandingsTable({ rows, favoriteTeams }) {
                   {row.diff > 0 ? `+${row.diff}` : row.diff}
                 </td>
                 <td className="px-2 py-2.5 text-center text-base font-bold tabular-nums text-slate-900 dark:text-slate-50">
-                  {row.points}
+                  {row.pointsPlus}:{row.pointsMinus}
                 </td>
               </tr>
             )

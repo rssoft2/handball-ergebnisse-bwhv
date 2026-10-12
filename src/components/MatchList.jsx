@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import MatchCard from './MatchCard.jsx'
 
-export default function MatchList({ games, favoriteTeams, emptyText, initialLimit = 10 }) {
+export default function MatchList({ games, favoriteTeams, emptyText, initialLimit = 10, initialGames }) {
   const [expanded, setExpanded] = useState(false)
-  const hasMore = games.length > initialLimit
-  const visible = expanded ? games : games.slice(0, initialLimit)
+  const base = initialGames ?? games.slice(0, initialLimit)
+  const hasMore = games.length > base.length
+  const visible = expanded ? games : base
 
   if (games.length === 0) {
     return (

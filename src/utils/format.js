@@ -37,3 +37,8 @@ export function formatTime(gTime) {
 export function trim(value) {
   return value == null ? '' : String(value).trim()
 }
+
+// Mitternacht vor `days` Tagen (gleicher Wochentag, eine Woche zurück bei days=7).
+export function startOfDaysAgo(days, now = new Date()) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - days)
+}

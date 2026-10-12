@@ -1,9 +1,9 @@
 export const API_BASE = 'https://spo.handball4all.de/service/if_g_json.php'
 
-// Standard-Auswahl (Baden-Württembergischer HV, männliche B-Jugend Bezirksliga)
-export const DEFAULT_ORG = '216'
-export const DEFAULT_REGION = ''
-export const DEFAULT_LEAGUE = '164656'
+// Es werden ausschließlich Daten des Baden-Württembergischen HV geladen:
+// landesweite Ligen (ohne Bereich) plus die Ligen des Bereichs Schwarzwald-Rhein.
+export const ORG = '216'
+export const REGION = '246'
 
 // Teams, die in Tabelle und Spielen hervorgehoben werden (Teilstring-Vergleich)
 export const FAVORITE_TEAMS = ['HSG Ettlingen']

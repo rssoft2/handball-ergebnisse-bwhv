@@ -1,7 +1,7 @@
 import { API_BASE, CACHE_TTL_MS } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
-const CACHE_PREFIX = 'h4a:cache:v1'
+const CACHE_PREFIX = 'h4a:cache:v3'
 
 /* ------------------------------------------------------------------ */
 /* HTTP                                                                */
@@ -76,6 +76,94 @@ async function getCached(key, loader, force = false) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Altersklassen                                                       */
+/* ------------------------------------------------------------------ */
+
+const AGE_ORDER = {
+  Männer: 0,
+  Frauen: 1,
+  'Männliche A-Jugend': 2,
+  'Weibliche A-Jugend': 3,
+  'Männliche B-Jugend': 4,
+  'Weibliche B-Jugend': 5,
+  'Männliche C-Jugend': 6,
+  'Weibliche C-Jugend': 7,
+  'Männliche D-Jugend': 8,
+  'Weibliche D-Jugend': 9,
+  'Männliche E-Jugend': 10,
+  'Weibliche E-Jugend': 11,
+  'Gemischte D-Jugend': 12,
+  'Gemischte E-Jugend': 13,
+  'Gemischte F-Jugend': 14,
+  Minis: 15,
+  Inklusion: 16,
+  Sonstige: 17,
+}
+
+// Reihenfolge der Bereiche auf dem Startscreen.
+const SECTION_ORDER = [
+  'Männer',
+  'Männliche Jugenden',
+  'Frauen',
+  'Weibliche Jugenden',
+  'Gemischte Jugenden',
+  'Minis',
+]
+
+const LEVEL_ORDER = [
+  'Regionalliga',
+  'Oberliga',
+  'Verbandsliga',
+  'Landesliga',
+  'Bezirksoberliga',
+  'Bezirksliga',
+  'Bezirksklasse',
+  '2. Bezirksklasse',
+  '3. Bezirksklasse',
+  '4. Bezirksklasse',
+  'Pokal',
+  'Freundschaftsspiele',
+  'Sonstige Wettbewerbe',
+]
+
+function ageGroupOf(gender, desc) {
+  const d = trim(desc)
+  if (gender === 'm') {
+    if (d === 'M') return 'Männer'
+    if ('ABCDE'.includes(d) && d.length === 1) return `Männliche ${d}-Jugend`
+  } else if (gender === 'w') {
+    if (d === 'F') return 'Frauen'
+    if ('ABCDE'.includes(d) && d.length === 1) return `Weibliche ${d}-Jugend`
+  } else if (gender === 'g') {
+    const lower = d.toLowerCase()
+    if (lower.startsWith('gu') || lower === 'minis') return 'Minis'
+    if (lower.startsWith('inkl')) return 'Inklusion'
+    if ('DEF'.includes(d) && d.length === 1) return `Gemischte ${d}-Jugend`
+  }
+  return 'Sonstige'
+}
+
+function sectionOf(ageGroup) {
+  if (ageGroup === 'Männer') return 'Männer'
+  if (ageGroup.startsWith('Männliche')) return 'Männliche Jugenden'
+  if (ageGroup === 'Frauen') return 'Frauen'
+  if (ageGroup.startsWith('Weibliche')) return 'Weibliche Jugenden'
+  if (ageGroup.startsWith('Gemischte')) return 'Gemischte Jugenden'
+  if (ageGroup === 'Minis') return 'Minis'
+  return null
+}
+
+function sectionRank(section) {
+  const index = SECTION_ORDER.indexOf(section)
+  return index === -1 ? SECTION_ORDER.length : index
+}
+
+function levelRank(level) {
+  const index = LEVEL_ORDER.indexOf(level)
+  return index === -1 ? LEVEL_ORDER.length : index
+}
+
+/* ------------------------------------------------------------------ */
 /* Normalisierung                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -94,6 +182,7 @@ function parseGoals(value) {
 function normalizeGame(game) {
   const homeGoals = parseGoals(game.gHomeGoals)
   const awayGoals = parseGoals(game.gGuestGoals)
+  const live = Boolean(game.live)
   return {
     id: game.gID,
     reportId: game.sGID,
@@ -109,19 +198,14 @@ function normalizeGame(game) {
     venue: trim(game.gGymnasiumName),
     town: trim(game.gGymnasiumTown),
     street: trim(game.gGymnasiumStreet),
-    live: Boolean(game.live),
+    live,
     done: homeGoals !== null && awayGoals !== null,
     dateObj: parseGameDate(game.gDate, game.gTime),
   }
 }
 
-function byDateAsc(a, b) {
-  return (a.dateObj?.getTime() ?? 0) - (b.dateObj?.getTime() ?? 0)
-}
-
-function byDateDesc(a, b) {
-  return (b.dateObj?.getTime() ?? 0) - (a.dateObj?.getTime() ?? 0)
-}
+const byDateAsc = (a, b) => (a.dateObj?.getTime() ?? 0) - (b.dateObj?.getTime() ?? 0)
+const byDateDesc = (a, b) => (b.dateObj?.getTime() ?? 0) - (a.dateObj?.getTime() ?? 0)
 
 function normalizeLeague(payload) {
   const head = payload.head ?? {}
@@ -141,6 +225,8 @@ function normalizeLeague(payload) {
       goalsFor,
       goalsAgainst,
       diff: goalsFor - goalsAgainst,
+      pointsPlus: toNumber(row.pointsPlus),
+      pointsMinus: toNumber(row.pointsMinus),
       points: toNumber(row.pointsPlus),
     }
   })
@@ -157,8 +243,9 @@ function normalizeLeague(payload) {
       live: Boolean(head.live),
     },
     standings,
-    played: matches.filter((m) => m.done).sort(byDateDesc),
-    upcoming: matches.filter((m) => !m.done).sort(byDateAsc),
+    live: matches.filter((m) => m.live).sort(byDateAsc),
+    played: matches.filter((m) => m.done && !m.live).sort(byDateDesc),
+    upcoming: matches.filter((m) => !m.done && !m.live).sort(byDateAsc),
   }
 }
 
@@ -166,31 +253,46 @@ function normalizeLeague(payload) {
 /* Öffentliche API                                                     */
 /* ------------------------------------------------------------------ */
 
-// Verbände / Bereiche (aus dem Menü der Schnittstelle)
-export async function fetchRegions(org) {
-  return getCached(`regions:${org}`, async () => {
-    const payload = await getJson({ cmd: 'po', og: org })
-    const list = payload.menu?.org?.list ?? {}
-    return Object.entries(list).map(([id, name]) => ({ id, name: trim(name) }))
+async function fetchClassList(org, region) {
+  const params = { cmd: 'po', og: org }
+  if (region) params.o = region
+  const payload = await getJson(params)
+  const classes = payload.content?.classes ?? []
+  return classes.map((c) => {
+    const gender = trim(c.gClassGender)
+    const ageGroup = ageGroupOf(gender, c.gClassAGsDesc)
+    return {
+      id: String(c.gClassID),
+      sname: trim(c.gClassSname),
+      name: trim(c.gClassLname),
+      level: trim(c.gClassLevelName),
+      ageGroup,
+      section: sectionOf(ageGroup),
+    }
   })
 }
 
-// Ligen eines Verbands / Bereichs
-export async function fetchLeagues(org, region) {
-  return getCached(`leagues:${org}:${region || 'all'}`, async () => {
-    const params = { cmd: 'po', og: org }
-    if (region) params.o = region
-    const payload = await getJson(params)
-    const classes = payload.content?.classes ?? []
-    return classes
-      .map((c) => ({
-        id: String(c.gClassID),
-        sname: trim(c.gClassSname),
-        name: trim(c.gClassLname),
-        level: trim(c.gClassLevelName),
-        gender: trim(c.gClassGender),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+// Alle relevanten Ligen (landesweit + Bereich), gruppierbar nach Altersklasse.
+export async function fetchBwhvLeagues(org, region) {
+  return getCached(`leagues:${org}:${region}`, async () => {
+    const [statewide, regional] = await Promise.all([
+      fetchClassList(org, null),
+      fetchClassList(org, region),
+    ])
+    const byId = new Map()
+    for (const item of [...statewide, ...regional]) {
+      if (item.section) byId.set(item.id, item)
+    }
+
+    return [...byId.values()].sort((a, b) => {
+      const sectionDiff = sectionRank(a.section) - sectionRank(b.section)
+      if (sectionDiff !== 0) return sectionDiff
+      const ageDiff = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
+      if (ageDiff !== 0) return ageDiff
+      const levelDiff = levelRank(a.level) - levelRank(b.level)
+      if (levelDiff !== 0) return levelDiff
+      return a.name.localeCompare(b.name, 'de')
+    })
   })
 }
 

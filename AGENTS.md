@@ -66,6 +66,4 @@ Favorites matched as case-insensitive **substring** (`isFavoriteTeam`). Cache ke
 
 ## Next steps / open questions
 
-- Add scorer list ("Torschützenliste") feature — data source still to be decided.
-- Initial git commit not created yet.
 - PWA / deployment target not decided.
