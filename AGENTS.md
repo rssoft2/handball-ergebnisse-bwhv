@@ -4,66 +4,78 @@ Project memory for opencode. Read this first every session. Keep it short and cu
 
 ## What this is
 
-Mobile-first web app that shows **handball results, standings and fixtures** for
-Baden-Württemberg (handball4all data). German UI. Unofficial companion view, with
-**HSG Ettlingen** highlighted everywhere. No backend — the browser calls the public
-handball4all JSON API directly.
+Mobile-first web app that shows **handball results, standings and fixtures** for the
+Baden-Württembergischer HV (BWHV, org `216`) plus its region **Schwarzwald-Rhein**
+(`246`). German UI. Unofficial companion view, with **HSG Ettlingen** highlighted
+everywhere. No backend — the browser calls the public handball4all JSON API directly.
 
 ## Commands
 
 - `npm run dev` — Vite dev server (host exposed on LAN)
-- `npm run build` — production build to `dist/`
+- `npm run build` — production build to `dist/` (plain `vite build`, not watch)
 - `npm run preview` — preview the build
 - `npm run qr` — prints LAN URL as a terminal QR and writes `app-qr.png` (gitignored)
 
-No test runner and no linter are configured yet. Verify changes by running the dev
-server and checking the UI, plus `npm run build` for compile errors.
+No test runner and no linter. Verify via the dev server + UI and `npm run build`.
 
 ## Stack
 
-React 19 + Vite 8, Tailwind CSS v4 via `@tailwindcss/vite` (no `tailwind.config`; theme
-lives in `src/index.css`). Plain JS/JSX (no TypeScript). State is local React state +
-a tiny cache; no router, no state library.
+React 19 + Vite 8 (`base: './'`), Tailwind CSS v4 via `@tailwindcss/vite` (no
+`tailwind.config`; theme lives in `src/index.css`). Plain JS/JSX (no TypeScript). State
+is local React state + a tiny cache; no router (screens via state, league in URL `?cl=`).
 
 ## Structure
 
-- `src/config.js` — API base, default org/region/league, `FAVORITE_TEAMS`, cache TTL, report base URL
-- `src/api/h4a.js` — all HTTP + normalization + in-memory/localStorage cache
+- `src/config.js` — `API_BASE`, `ORG`, `REGION`, `FAVORITE_TEAMS`, cache TTL, report base
+- `src/api/h4a.js` — all HTTP + normalization + cache + age/section grouping
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
-- `src/utils/format.js`, `src/utils/teams.js` — date formatting, favorite-team matching
-- `src/components/` — Header, LeagueSelector, TabSwitcher, StandingsTable, MatchList/MatchCard, StateMessage
-- `src/App.jsx` — wiring: selection state (URL params + localStorage), data loading, tab switch
+- `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
+- `src/utils/teams.js` — favorite matching (`isFavoriteTeam`) + form (`buildFormByTeam`)
+- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage
+- `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading
 - `scripts/qr.mjs` — LAN QR code generator
+- `.github/workflows/deploy.yml` — GitHub Pages deploy
+- `misc/` — reference screenshots (7meter design)
 
 ## Data / API (handball4all)
 
 Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array; use `data[0]`.
 
-- `cmd=po&og=<org>` → menu of areas/regions (`menu.org.list`)
-- `cmd=po&og=<org>&o=<region>` → leagues (`content.classes`)
+- `cmd=po&og=<org>` → statewide leagues (`content.classes`), incl. `gClassLevelName`, `gClassGender`, `gClassAGsDesc`
+- `cmd=po&og=<org>&o=<region>` → regional leagues
 - `cmd=ps&og=<org>&cl=<league>&ca=1` → standings (`content.score`) + games (`content.futureGames.games`)
 
-`normalizeLeague` splits games into `played` (has both goals, newest first) and `upcoming`.
-Favorites matched as case-insensitive **substring** (`isFavoriteTeam`). Cache key prefix
-`h4a:cache:v1`; selection persisted under `h4a:selection:v1`. All UI text is German.
+`fetchBwhvLeagues` merges statewide + region 246, drops leagues without a section
+(`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
+Standings rows include `pointsPlus`/`pointsMinus` (shown as `plus:minus`). Games have
+**names only** (no team ids) plus `gHomePoints`/`gGuestPoints`. `normalizeLeague` splits
+into `live`, `played` (done, newest first) and `upcoming`. Cache prefix `h4a:cache:v3`;
+theme persisted under `h4a:theme`. All UI text is German.
 
 ## Conventions
 
-- Tailwind utility classes only; always provide `dark:` variants (light + dark theme).
-- Favor `tabular-nums` for scores/standings; keep sections `max-w-3xl mx-auto px-4`.
+- Use **semantic tokens** (`bg-surface`, `text-ink`, `text-muted`, `border-line`,
+  `text-accent`, `bg-favbg` …) defined in `src/index.css`; don't hardcode slate/white.
+  Light + dark (navy) switch automatically via `data-theme` on `<html>`.
+- Favor `tabular-nums`; sections use `max-w-3xl mx-auto px-4`.
 - Comments in German, sparse. Don't add comments unless they earn their place.
-- Reuse `useAsync` for data fetching; keep API/normalization in `api/h4a.js`, not components.
-- Favorite-team highlighting is the amber accent used across table and cards.
+- Reuse `useAsync`; keep API/normalization in `api/h4a.js`, not components.
+- Favorite-team highlight is the amber token (`--fav-*`) across table and cards.
+- Fonts: Space Grotesk (headings), Hanken Grotesk (body). Design oriented on 7meter.app (not 1:1).
 
 ## Current state / decisions
 
-- Live app logic is feature-complete for: league picker (region + search), table,
-  results, upcoming fixtures, report links, refresh, LIVE badges, caching.
-- Selection is shareable via query params (`og`, `o`, `cl`, `tab`).
-- Git: repo initialized, **no commits yet** — all files currently untracked.
-- `Torschuetzenliste_HSG_Ettlingen.pdf` (top-scorer list) is present but **not yet
-  integrated**; a scorer-list feature was a candidate next step.
+- Screens: **LeagueList** (bundesweit + Bereich 246, gruppiert nach
+  Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden / Minis,
+  durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Aktuelle Spiele,
+  Tabelle, Kommende Spiele). Aktuelle Spiele aufsteigend, initial nur die letzten 7 Tage,
+  Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
+- Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.
+- Dark/Light-Toggle im Header (`data-theme`, `h4a:theme`); flackerfreies Init-Script in `index.html`.
+- Git: `main`, remote `origin` = `https://github.com/rssoft2/handball-ergebnisse-bwhv`.
+- Hosting: **GitHub Pages** via Actions → https://rssoft2.github.io/handball-ergebnisse-bwhv/
 
 ## Next steps / open questions
 
-- PWA / deployment target not decided.
+- Optional: scorer/top-scorer list feature (no data source wired up yet).
+- Optional: custom domain (CNAME), PWA.
