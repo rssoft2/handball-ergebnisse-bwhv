@@ -1,7 +1,7 @@
 import { API_BASE, CACHE_TTL_MS } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
-const CACHE_PREFIX = 'h4a:cache:v3'
+const CACHE_PREFIX = 'h4a:cache:v4'
 
 /* ------------------------------------------------------------------ */
 /* HTTP                                                                */
@@ -207,6 +207,74 @@ function normalizeGame(game) {
 const byDateAsc = (a, b) => (a.dateObj?.getTime() ?? 0) - (b.dateObj?.getTime() ?? 0)
 const byDateDesc = (a, b) => (b.dateObj?.getTime() ?? 0) - (a.dateObj?.getTime() ?? 0)
 
+// Normalisiert Teamnamen für den Abgleich (Groß/Klein, Umlaute, Sonderzeichen egal).
+function normalizeTeamName(name) {
+  return trim(name)
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]/g, '')
+}
+
+// Prüft, ob `short` als Teilsequenz in `full` steckt.
+function isSubsequence(short, full) {
+  if (!short) return false
+  let i = 0
+  for (const char of full) {
+    if (char === short[i]) i += 1
+    if (i === short.length) return true
+  }
+  return false
+}
+
+// Die API liefert in Spielen nur Kurznamen ("SG Hei/Hel/Gon"), in der Tabelle
+// aber Langnamen ("SG Heidelsheim/Helmsheim/Gondelsheim"). Der Kurzname ist
+// (fast) immer eine Teilsequenz des Langnamens – darüber ordnen wir zu.
+function buildTeamNameMap(shortNames, fullNames) {
+  const fulls = [...new Set(fullNames.filter(Boolean))].map((name) => ({
+    name,
+    norm: normalizeTeamName(name),
+  }))
+
+  const map = new Map()
+  for (const short of shortNames) {
+    const s = trim(short)
+    if (!s) continue
+    const ns = normalizeTeamName(s)
+    if (ns.length < 2) continue
+    const matches = fulls.filter((f) => isSubsequence(ns, f.norm))
+    if (matches.length === 0) continue
+    matches.sort((a, b) => Math.abs(a.norm.length - ns.length) - Math.abs(b.norm.length - ns.length))
+    map.set(s, matches[0].name)
+  }
+  return map
+}
+
+// Form (S/U/N) pro Team aus den gespielten Partien (neueste zuerst) ableiten.
+function buildFormByTeam(played, nameMap, limit = 5) {
+  const byTeam = new Map()
+  const push = (team, result) => {
+    if (!team) return
+    if (!byTeam.has(team)) byTeam.set(team, [])
+    byTeam.get(team).push(result)
+  }
+
+  for (const game of played) {
+    const home = game.homeGoals > game.awayGoals ? 'S' : game.homeGoals < game.awayGoals ? 'N' : 'U'
+    const away = home === 'S' ? 'N' : home === 'N' ? 'S' : 'U'
+    push(nameMap.get(game.home), home)
+    push(nameMap.get(game.away), away)
+  }
+
+  const form = {}
+  for (const [team, results] of byTeam) {
+    // zuletzt gespielt zuerst erfasst -> auf die letzten `limit` kürzen, dann
+    // umdrehen, damit die Anzeige alt -> neu läuft.
+    form[team] = results.slice(0, limit).reverse()
+  }
+  return form
+}
+
 function normalizeLeague(payload) {
   const head = payload.head ?? {}
   const content = payload.content ?? {}
@@ -234,6 +302,18 @@ function normalizeLeague(payload) {
   const rawGames = content.futureGames?.games ?? []
   const matches = rawGames.map(normalizeGame)
 
+  const played = matches.filter((m) => m.done && !m.live).sort(byDateDesc)
+  const gameTeamNames = new Set()
+  for (const m of matches) {
+    gameTeamNames.add(m.home)
+    gameTeamNames.add(m.away)
+  }
+  const teamNameMap = buildTeamNameMap(
+    gameTeamNames,
+    standings.map((s) => s.name),
+  )
+  const formByTeam = buildFormByTeam(played, teamNameMap)
+
   return {
     meta: {
       name: trim(head.name),
@@ -243,8 +323,9 @@ function normalizeLeague(payload) {
       live: Boolean(head.live),
     },
     standings,
+    played,
+    formByTeam,
     live: matches.filter((m) => m.live).sort(byDateAsc),
-    played: matches.filter((m) => m.done && !m.live).sort(byDateDesc),
     upcoming: matches.filter((m) => !m.done && !m.live).sort(byDateAsc),
   }
 }
