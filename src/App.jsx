@@ -53,6 +53,11 @@ export default function App() {
   const showingDetail = Boolean(selected)
   const data = detail.data
 
+  // Nur im Dev-Server: ?crash=1 erzwingt einen Renderfehler zum Testen der Error Boundary.
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('crash')) {
+    throw new Error('Testfehler (Error Boundary)')
+  }
+
   return (
     <div className="min-h-screen bg-bg text-ink">
       <Header
