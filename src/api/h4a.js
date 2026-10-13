@@ -1,7 +1,14 @@
-import { API_BASE, CACHE_TTL_MS, TEAM_INDEX_TTL_MS } from '../config.js'
+import {
+  API_BASE,
+  CACHE_TTL_MS,
+  CLUB_SEARCH_TTL_MS,
+  CLUB_TEAMS_TTL_MS,
+  MAX_CLUBS_PER_SEARCH,
+  CLUB_FETCH_INTERVAL_MS,
+} from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
-const CACHE_PREFIX = 'h4a:cache:v5'
+const CACHE_PREFIX = 'h4a:cache:v6'
 
 /* ------------------------------------------------------------------ */
 /* HTTP                                                                */
@@ -16,11 +23,22 @@ async function getJson(params) {
   }
 
   const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } })
+  const text = await res.text()
+
+  if (res.status === 429 || res.status === 401 || /too many requests/i.test(text)) {
+    throw new Error(`Die Handball4all-Schnittstelle drosselt gerade (${res.status}).`)
+  }
   if (!res.ok) {
     throw new Error(`Die Handball4all-Schnittstelle antwortet mit Fehler ${res.status}.`)
   }
 
-  const data = await res.json()
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('Die Schnittstelle liefert keine gültige Antwort.')
+  }
+
   const payload = Array.isArray(data) ? data[0] : data
   if (!payload) throw new Error('Leere Antwort der Schnittstelle.')
   if (payload.error) {
@@ -361,23 +379,20 @@ export async function fetchBwhvLeagues(org, region) {
       fetchClassList(org, null),
       fetchClassList(org, region),
     ])
-    const regionalIds = new Set(regional.map((item) => item.id))
     const byId = new Map()
     for (const item of [...statewide, ...regional]) {
       if (item.section) byId.set(item.id, item)
     }
 
-    return [...byId.values()]
-      .map((item) => ({ ...item, regional: regionalIds.has(item.id) }))
-      .sort((a, b) => {
-        const sectionDiff = sectionRank(a.section) - sectionRank(b.section)
-        if (sectionDiff !== 0) return sectionDiff
-        const ageDiff = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
-        if (ageDiff !== 0) return ageDiff
-        const levelDiff = levelRank(a.level) - levelRank(b.level)
-        if (levelDiff !== 0) return levelDiff
-        return a.name.localeCompare(b.name, 'de')
-      })
+    return [...byId.values()].sort((a, b) => {
+      const sectionDiff = sectionRank(a.section) - sectionRank(b.section)
+      if (sectionDiff !== 0) return sectionDiff
+      const ageDiff = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
+      if (ageDiff !== 0) return ageDiff
+      const levelDiff = levelRank(a.level) - levelRank(b.level)
+      if (levelDiff !== 0) return levelDiff
+      return a.name.localeCompare(b.name, 'de')
+    })
   })
 }
 
@@ -393,97 +408,105 @@ export async function fetchLeague(org, league, force = false) {
   )
 }
 
-// Index aller Mannschaften über die Ligen (für die Team-Suche). Die API kennt
-// keine eigene Teamsuche und drosselt bei zu vielen Anfragen (429). Daher:
-// pro Liga ein schlanker Aufruf (ohne `ca`, ohne Spielplan), sequentiell mit
-// Pause, pro Liga dauerhaft gecacht (wiederaufsetzbar) und Drosselung wird als
-// Abbruch gewertet. Fortschritt wird über `onProgress(entries, done, total)`
-// gemeldet; parallele Aufrufe teilen sich denselben Lauf.
-const TEAM_INDEX_MIN_INTERVAL_MS = 800
+/* ------------------------------------------------------------------ */
+/* Mannschafts-/Vereinssuche                                            */
+/* ------------------------------------------------------------------ */
+// Die API kennt keine direkte Mannschaftssuche. Es gibt aber eine
+// Vereinssuche (`cmd=cs&cs=<text>`) und pro Verein eine Seite (`cmd=pcu&c=<id>`)
+// mit allen Spielen des Vereins, gruppiert nach Liga. Aus den Spielen leiten wir
+// die Mannschaften des Vereins samt Liga ab. Der Suchtext steht im Parameter,
+// der wie der Befehl heißt (`cs=<text>`).
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function isThrottled(error) {
-  return /\b(429|401)\b/.test(error?.message ?? '')
+  return /\b(429|401)\b|\btoo many requests\b/i.test(error?.message ?? '')
 }
 
-function teamListKey(org, leagueId) {
-  return `teamlist:${org}:${leagueId}`
+// Vereine zu einem Suchbegriff. Liefert [{ clubId, clubName }].
+async function findClubs(org, query) {
+  const key = `clubs:${org}:${query.toLowerCase()}`
+  const cached = readCache(key)
+  if (cached) return cached
+
+  const payload = await getJson({ cmd: 'cs', og: org, cs: query })
+  const list = payload.searchResult?.list ?? []
+  const clubs = list
+    .map((item) => ({ clubId: String(item.id), clubName: trim(item.lname) }))
+    .filter((club) => club.clubId && club.clubName)
+
+  writeCache(key, clubs, CLUB_SEARCH_TTL_MS)
+  return clubs
 }
 
-async function buildTeamIndex(org, leagues, emit) {
-  const entries = []
-  const missing = []
+// Mannschaften eines Vereins (aus dessen Spielen) mit Liga-Label.
+async function fetchClubTeams(org, club) {
+  const key = `clubteams:${org}:${club.clubId}`
+  const cached = readCache(key)
+  if (cached) return cached
 
-  const addLeague = (league, teams) => {
-    const leagueName = league.name || league.sname
-    for (const team of teams) {
-      const teamName = trim(team.teamName)
-      if (!teamName) continue
-      entries.push({
-        teamId: String(team.teamID),
-        teamName,
-        leagueId: league.id,
-        leagueName,
-        section: league.section,
-      })
-    }
-  }
+  const payload = await getJson({ cmd: 'pcu', og: org, c: club.clubId })
+  const classes = payload.content?.classes ?? []
+  const clubNorm = normalizeTeamName(club.clubName)
 
-  for (const league of leagues) {
-    const cached = readCache(teamListKey(org, league.id))
-    if (cached) addLeague(league, cached)
-    else missing.push(league)
-  }
-
-  let done = leagues.length - missing.length
-  emit([...entries], done, leagues.length)
-
-  for (const league of missing) {
-    try {
-      const payload = await getJson({ cmd: 'ps', og: org, cl: league.id })
-      const teams = payload.content?.teamsList ?? []
-      writeCache(teamListKey(org, league.id), teams, TEAM_INDEX_TTL_MS)
-      addLeague(league, teams)
-    } catch (error) {
-      // Gedrosselt: Lauf hier beenden, bereits Gecachtes bleibt erhalten.
-      if (isThrottled(error)) break
-    }
-    done += 1
-    emit([...entries], done, leagues.length)
-    await delay(TEAM_INDEX_MIN_INTERVAL_MS)
-  }
-
-  entries.sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
-  emit([...entries], done, leagues.length)
-  return entries
-}
-
-let teamIndexRun = null
-
-export function fetchTeamIndex(org, leagues, { onProgress } = {}) {
-  if (teamIndexRun) {
-    if (onProgress) teamIndexRun.listeners.add(onProgress)
-    return teamIndexRun.promise
-  }
-
-  const listeners = new Set()
-  if (onProgress) listeners.add(onProgress)
-  const emit = (entries, done, total) => {
-    for (const listener of listeners) {
-      try {
-        listener(entries, done, total)
-      } catch {
-        /* Listener-Fehler ignorieren */
+  const byTeam = new Map()
+  for (const cls of classes) {
+    const leagueId = cls.gClassID
+    const leagueName = trim(cls.gClassLname || cls.gClassSname)
+    for (const game of cls.games ?? []) {
+      for (const raw of [game.gHomeTeam, game.gGuestTeam]) {
+        const teamName = trim(raw)
+        if (!teamName) continue
+        // Nur die eigene Mannschaft des Vereins. Kurzname (aus den Spielen) und
+        // Vereinsname sind oft unterschiedlich lang ("HSG Ettlingen" vs.
+        // "HSG Ettlingen 2"), daher in beide Richtungen prüfen.
+        const teamNorm = normalizeTeamName(teamName)
+        const matches =
+          isSubsequence(clubNorm, teamNorm) || isSubsequence(teamNorm, clubNorm)
+        if (!matches) continue
+        const id = `${leagueId}:${teamName}`
+        if (byTeam.has(id)) continue
+        byTeam.set(id, { teamName, leagueId, leagueName, clubName: club.clubName })
       }
     }
   }
 
-  const promise = buildTeamIndex(org, leagues, emit).finally(() => {
-    teamIndexRun = null
-  })
-  teamIndexRun = { promise, listeners }
-  return promise
+  const teams = [...byTeam.values()].sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
+  writeCache(key, teams, CLUB_TEAMS_TTL_MS)
+  return teams
+}
+
+// Sucht Vereine zum Begriff und sammelt deren Mannschaften. `onClubs` wird noch
+// vor dem Laden der Mannschaften aufgerufen (für sofortiges Feedback).
+export async function searchTeams(org, query, { onClubs } = {}) {
+  const q = trim(query)
+  if (q.length < 2) return { clubs: [], teams: [] }
+
+  const clubs = await findClubs(org, q)
+  if (onClubs) onClubs(clubs)
+
+  const limited = clubs.slice(0, MAX_CLUBS_PER_SEARCH)
+  const teams = []
+  const seen = new Set()
+  for (let i = 0; i < limited.length; i += 1) {
+    if (i > 0) await delay(CLUB_FETCH_INTERVAL_MS)
+    let clubTeams
+    try {
+      clubTeams = await fetchClubTeams(org, limited[i])
+    } catch (error) {
+      if (isThrottled(error)) break
+      continue
+    }
+    for (const team of clubTeams) {
+      const id = `${team.leagueId}:${team.teamName}`
+      if (seen.has(id)) continue
+      seen.add(id)
+      teams.push(team)
+    }
+  }
+
+  teams.sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
+  return { clubs, teams }
 }

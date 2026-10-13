@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchTeamIndex } from '../api/h4a.js'
+import { useEffect, useMemo, useState } from 'react'
+import { searchTeams } from '../api/h4a.js'
 import { ORG } from '../config.js'
 import StateMessage from './StateMessage.jsx'
 
@@ -82,37 +82,31 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
     )
   }, [leagues, q])
 
-  // Team-Index bei der ersten Suche im Hintergrund aufbauen. Nur die Ligen des
-  // Bereichs Schwarzwald-Rhein (regional) – deutlich weniger Anfragen.
-  const regionalLeagues = useMemo(() => leagues.filter((l) => l.regional), [leagues])
-  const teamRunStarted = useRef(false)
-  const [teamIndex, setTeamIndex] = useState([])
-  const [teamProgress, setTeamProgress] = useState({ done: 0, total: 0 })
-  const [teamStatus, setTeamStatus] = useState('idle')
+  // Mannschaften über Vereine suchen: Suchbegriff → Vereine (`cs`) → deren
+  // Mannschaften samt Liga (`pcu`). Kurz entprellt, Ergebnisse nach dem Laden.
+  const [teamState, setTeamState] = useState({ status: 'idle', teams: [] })
 
   useEffect(() => {
-    if (teamRunStarted.current || !q || regionalLeagues.length === 0) return
-    teamRunStarted.current = true
-    setTeamStatus('loading')
-    fetchTeamIndex(ORG, regionalLeagues, {
-      onProgress: (entries, done, total) => {
-        setTeamIndex(entries)
-        setTeamProgress({ done, total })
-      },
-    })
-      .then((entries) => {
-        setTeamIndex(entries)
-        setTeamStatus('ready')
-      })
-      .catch(() => setTeamStatus('error'))
-  }, [q, regionalLeagues])
-
-  const teamResults = useMemo(() => {
-    if (!q) return null
-    return teamIndex.filter((t) => t.teamName.toLowerCase().includes(q)).slice(0, 60)
-  }, [q, teamIndex])
-
-  const indexing = teamStatus === 'loading' && teamProgress.done < teamProgress.total
+    if (q.length < 2) {
+      setTeamState({ status: 'idle', teams: [] })
+      return
+    }
+    let active = true
+    setTeamState({ status: 'loading', teams: [] })
+    const timer = setTimeout(() => {
+      searchTeams(ORG, q)
+        .then(({ teams }) => {
+          if (active) setTeamState({ status: 'ready', teams: teams.slice(0, 80) })
+        })
+        .catch(() => {
+          if (active) setTeamState({ status: 'error', teams: [] })
+        })
+    }, 350)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [q])
 
   function toggle(group) {
     setOpenGroups((prev) => {
@@ -173,28 +167,21 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
             <h2 className="mb-2 px-1 font-head text-xs font-semibold uppercase tracking-[0.06em] text-muted">
               Mannschaften
             </h2>
-            {teamStatus === 'error' ? (
+            {teamState.status === 'error' ? (
               <p className="px-1 text-sm text-muted">
                 Mannschaften konnten nicht geladen werden.
               </p>
-            ) : teamResults && teamResults.length > 0 ? (
-              <div className="space-y-2">
-                <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-sm">
-                  {teamResults.map((team) => (
-                    <TeamRow
-                      key={`${team.leagueId}:${team.teamId}`}
-                      team={team}
-                      onSelect={onSelect}
-                    />
-                  ))}
-                </div>
-                {indexing ? (
-                  <p className="px-1 text-xs text-faint">
-                    Weitere Mannschaften werden geladen … ({teamProgress.done}/{teamProgress.total})
-                  </p>
-                ) : null}
+            ) : teamState.teams.length > 0 ? (
+              <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-sm">
+                {teamState.teams.map((team) => (
+                  <TeamRow
+                    key={`${team.leagueId}:${team.teamName}`}
+                    team={team}
+                    onSelect={onSelect}
+                  />
+                ))}
               </div>
-            ) : indexing || (teamStatus === 'loading' && teamIndex.length === 0) ? (
+            ) : teamState.status === 'loading' ? (
               <StateMessage status="loading" />
             ) : (
               <p className="px-1 text-sm text-muted">Keine passende Mannschaft.</p>

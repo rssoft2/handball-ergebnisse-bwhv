@@ -44,12 +44,14 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 - `cmd=po&og=<org>` → statewide leagues (`content.classes`), incl. `gClassLevelName`, `gClassGender`, `gClassAGsDesc`
 - `cmd=po&og=<org>&o=<region>` → regional leagues
 - `cmd=ps&og=<org>&cl=<league>&ca=1` → standings (`content.score`) + games (`content.futureGames.games`)
+- `cmd=cs&og=<org>&cs=<text>` → club search (`searchResult.list`, `{id,lname}`, max 50)
+- `cmd=pcu&og=<org>&c=<clubId>` → club page (`content.classes[].games`, grouped by league)
 
 `fetchBwhvLeagues` merges statewide + region 246, drops leagues without a section
 (`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
 Standings rows include `pointsPlus`/`pointsMinus` (shown as `plus:minus`). Games have
 **names only** (no team ids) plus `gHomePoints`/`gGuestPoints`. `normalizeLeague` splits
-into `live`, `played` (done, newest first) and `upcoming`. Cache prefix `h4a:cache:v3`;
+into `live`, `played` (done, newest first) and `upcoming`. Cache prefix `h4a:cache:v6`;
 theme persisted under `h4a:theme`. All UI text is German.
 
 ## Conventions
@@ -72,11 +74,14 @@ theme persisted under `h4a:theme`. All UI text is German.
   Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
 - Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.
 - Suche im LeagueList filtert Ligen **und** Mannschaften (search-as-you-type, Teams mit
-  Liga-Label). Team-Index (`fetchTeamIndex` in `api/h4a.js`) hat keine API-Quelle und wird
-  je Liga per `cmd=ps` (ohne `ca`) aufgebaut – **nur Ligen des Bereichs 246** (`league.regional`),
-  sequentiell (~0,8 s), pro Liga 7 Tage gecacht (`TEAM_INDEX_TTL_MS`), startet bei erster
-  Suche. **Achtung Rate-Limit**: die API drosselt/blockt bei zu vielen Anfragen (429/401)
-  → Aufbau bricht bei Drosselung ab und setzt beim nächsten Lauf fort.
+  Liga-Label). Mannschaften kommen über die API-Suche: `cmd=cs&cs=<text>` (Vereinssuche,
+  bis 50 Treffer mit `id`=ClubID) → je Verein `cmd=pcu&c=<clubId>` (alle Spiele nach Liga
+  gruppiert) → daraus die eigenen Mannschaften (Abgleich des Kurznamens aus den Spielen mit
+  dem Vereinsnamen via `isSubsequence`). **Merkregel**: der Suchtext steht im Parameter, der
+  wie der Befehl heißt (`cs=<text>`). `searchTeams` in `api/h4a.js`; max. `MAX_CLUBS_PER_SEARCH`
+  Vereine je Suche, ~0,4 s Pause, Vereine 10 min / Vereinsteams 24 h gecacht.
+  **Achtung Rate-Limit**: die API drosselt schnell (429/401 oder Body
+  `{ "error": "Too many requests" }`) → Suche bricht bei Drosselung ab.
 - Zugangshürde: `KeyGate` verlangt `?k=<secret>` (sonst „Kein Zugang"), merkt sich die
   Freigabe unter `h4a:key`, `k` bleibt in der URL. Nur der SHA-256-Hash steht in
   `config.js` (`ACCESS_HASH`); Secret nur im Einladungslink, **nicht** im Repo. Reine
