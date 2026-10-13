@@ -241,8 +241,30 @@ export default function LeagueList({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Liga, Verein oder Mannschaft suchen (z. B. Ettlingen, Bezirksliga)"
-              className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accentsoft"
+              className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-10 text-sm text-ink outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accentsoft"
             />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                aria-label="Suche löschen"
+                title="Löschen"
+                className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-faint transition hover:bg-surface2 hover:text-ink active:scale-90"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            ) : null}
           </div>
 
           {status === 'loading' && leagues.length === 0 ? (
