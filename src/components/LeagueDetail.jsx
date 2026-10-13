@@ -3,7 +3,7 @@ import StandingsTable from './StandingsTable.jsx'
 import MatchList from './MatchList.jsx'
 import { startOfDaysAgo } from '../utils/format.js'
 
-const byDateAsc = (a, b) => (a.dateObj?.getTime() ?? 0) - (b.dateObj?.getTime() ?? 0)
+const byDateAsc = (a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0)
 
 function Section({ title, subtitle, children }) {
   return (
@@ -29,8 +29,8 @@ export default function LeagueDetail({ data, status, error, onReload, favoriteTe
   if (!data) return null
 
   const current = [...data.live, ...data.played].sort(byDateAsc)
-  const since = startOfDaysAgo(7)
-  const recent = current.filter((game) => game.dateObj && game.dateObj >= since)
+  const since = startOfDaysAgo(7).getTime()
+  const recent = current.filter((game) => game.dateObj != null && game.dateObj >= since)
 
   return (
     <div className="space-y-8">

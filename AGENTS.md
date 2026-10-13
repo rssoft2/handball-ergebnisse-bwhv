@@ -51,7 +51,9 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 (`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
 Standings rows include `pointsPlus`/`pointsMinus` (shown as `plus:minus`). Games have
 **names only** (no team ids) plus `gHomePoints`/`gGuestPoints`. `normalizeLeague` splits
-into `live`, `played` (done, newest first) and `upcoming`. Cache prefix `h4a:cache:v6`;
+into `live`, `played` (done, newest first) and `upcoming`. Spiele tragen `dateObj` als
+**Zeitstempel (Zahl)**, damit er die JSON-Zwischenspeicherung übersteht (sonst `Date` →
+String → `getTime`-Crash). Cache prefix `h4a:cache:v7`;
 theme persisted under `h4a:theme`. All UI text is German.
 
 ## Conventions

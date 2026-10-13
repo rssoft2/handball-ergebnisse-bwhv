@@ -10,7 +10,7 @@ import {
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
-const CACHE_PREFIX = 'h4a:cache:v6'
+const CACHE_PREFIX = 'h4a:cache:v7'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -228,6 +228,7 @@ function normalizeGame(game) {
   const homeGoals = parseGoals(game.gHomeGoals)
   const awayGoals = parseGoals(game.gGuestGoals)
   const live = Boolean(game.live)
+  const date = parseGameDate(game.gDate, game.gTime)
   return {
     id: game.gID,
     reportId: game.sGID,
@@ -245,12 +246,13 @@ function normalizeGame(game) {
     street: trim(game.gGymnasiumStreet),
     live,
     done: homeGoals !== null && awayGoals !== null,
-    dateObj: parseGameDate(game.gDate, game.gTime),
+    // Als Zeitstempel (Zahl) speichern – übersteht die JSON-Zwischenspeicherung.
+    dateObj: date ? date.getTime() : null,
   }
 }
 
-const byDateAsc = (a, b) => (a.dateObj?.getTime() ?? 0) - (b.dateObj?.getTime() ?? 0)
-const byDateDesc = (a, b) => (b.dateObj?.getTime() ?? 0) - (a.dateObj?.getTime() ?? 0)
+const byDateAsc = (a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0)
+const byDateDesc = (a, b) => (b.dateObj ?? 0) - (a.dateObj ?? 0)
 
 // Normalisiert Teamnamen für den Abgleich (Groß/Klein, Umlaute, Sonderzeichen egal).
 function normalizeTeamName(name) {
