@@ -82,18 +82,19 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
     )
   }, [leagues, q])
 
-  // Team-Index bei der ersten Suche im Hintergrund aufbauen (schonend, pro Liga
-  // gecacht). Ergebnisse erscheinen nach und nach.
+  // Team-Index bei der ersten Suche im Hintergrund aufbauen. Nur die Ligen des
+  // Bereichs Schwarzwald-Rhein (regional) – deutlich weniger Anfragen.
+  const regionalLeagues = useMemo(() => leagues.filter((l) => l.regional), [leagues])
   const teamRunStarted = useRef(false)
   const [teamIndex, setTeamIndex] = useState([])
   const [teamProgress, setTeamProgress] = useState({ done: 0, total: 0 })
   const [teamStatus, setTeamStatus] = useState('idle')
 
   useEffect(() => {
-    if (teamRunStarted.current || !q || leagues.length === 0) return
+    if (teamRunStarted.current || !q || regionalLeagues.length === 0) return
     teamRunStarted.current = true
     setTeamStatus('loading')
-    fetchTeamIndex(ORG, leagues, {
+    fetchTeamIndex(ORG, regionalLeagues, {
       onProgress: (entries, done, total) => {
         setTeamIndex(entries)
         setTeamProgress({ done, total })
@@ -104,7 +105,7 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
         setTeamStatus('ready')
       })
       .catch(() => setTeamStatus('error'))
-  }, [q, leagues])
+  }, [q, regionalLeagues])
 
   const teamResults = useMemo(() => {
     if (!q) return null

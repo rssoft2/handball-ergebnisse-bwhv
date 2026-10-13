@@ -1,7 +1,7 @@
 import { API_BASE, CACHE_TTL_MS, TEAM_INDEX_TTL_MS } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
-const CACHE_PREFIX = 'h4a:cache:v4'
+const CACHE_PREFIX = 'h4a:cache:v5'
 
 /* ------------------------------------------------------------------ */
 /* HTTP                                                                */
@@ -361,20 +361,23 @@ export async function fetchBwhvLeagues(org, region) {
       fetchClassList(org, null),
       fetchClassList(org, region),
     ])
+    const regionalIds = new Set(regional.map((item) => item.id))
     const byId = new Map()
     for (const item of [...statewide, ...regional]) {
       if (item.section) byId.set(item.id, item)
     }
 
-    return [...byId.values()].sort((a, b) => {
-      const sectionDiff = sectionRank(a.section) - sectionRank(b.section)
-      if (sectionDiff !== 0) return sectionDiff
-      const ageDiff = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
-      if (ageDiff !== 0) return ageDiff
-      const levelDiff = levelRank(a.level) - levelRank(b.level)
-      if (levelDiff !== 0) return levelDiff
-      return a.name.localeCompare(b.name, 'de')
-    })
+    return [...byId.values()]
+      .map((item) => ({ ...item, regional: regionalIds.has(item.id) }))
+      .sort((a, b) => {
+        const sectionDiff = sectionRank(a.section) - sectionRank(b.section)
+        if (sectionDiff !== 0) return sectionDiff
+        const ageDiff = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
+        if (ageDiff !== 0) return ageDiff
+        const levelDiff = levelRank(a.level) - levelRank(b.level)
+        if (levelDiff !== 0) return levelDiff
+        return a.name.localeCompare(b.name, 'de')
+      })
   })
 }
 
