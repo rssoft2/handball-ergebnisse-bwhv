@@ -17,8 +17,8 @@ export const CLUB_TEAMS_TTL_MS = 24 * 60 * 60 * 1000
 
 // Pro Suche: höchstens so viele Vereine auflösen; Pause zwischen den Aufrufen,
 // um die Drosselung der API (429) zu vermeiden.
-export const MAX_CLUBS_PER_SEARCH = 12
-export const CLUB_FETCH_INTERVAL_MS = 400
+export const MAX_CLUBS_PER_SEARCH = 8
+export const CLUB_FETCH_INTERVAL_MS = 600
 
 // Basis-Link zu den öffentlichen Spielberichten
 export const REPORT_BASE = 'https://spo.handball4all.de/misc/sboPublicReports.php?sGID='

@@ -480,23 +480,35 @@ async function fetchClubTeams(org, club) {
 
 // Sucht Vereine zum Begriff und sammelt deren Mannschaften. `onClubs` wird noch
 // vor dem Laden der Mannschaften aufgerufen (für sofortiges Feedback).
+// `throttled` ist true, wenn die API gedrosselt hat (429/401) – dann sind die
+// Ergebnisse unvollständig bzw. leer.
 export async function searchTeams(org, query, { onClubs } = {}) {
   const q = trim(query)
-  if (q.length < 2) return { clubs: [], teams: [] }
+  if (q.length < 2) return { clubs: [], teams: [], throttled: false }
 
-  const clubs = await findClubs(org, q)
+  let clubs
+  try {
+    clubs = await findClubs(org, q)
+  } catch (error) {
+    if (isThrottled(error)) return { clubs: [], teams: [], throttled: true }
+    throw error
+  }
   if (onClubs) onClubs(clubs)
 
   const limited = clubs.slice(0, MAX_CLUBS_PER_SEARCH)
   const teams = []
   const seen = new Set()
-  for (let i = 0; i < limited.length; i += 1) {
-    if (i > 0) await delay(CLUB_FETCH_INTERVAL_MS)
+  let throttled = false
+  for (const club of limited) {
+    await delay(CLUB_FETCH_INTERVAL_MS)
     let clubTeams
     try {
-      clubTeams = await fetchClubTeams(org, limited[i])
+      clubTeams = await fetchClubTeams(org, club)
     } catch (error) {
-      if (isThrottled(error)) break
+      if (isThrottled(error)) {
+        throttled = true
+        break
+      }
       continue
     }
     for (const team of clubTeams) {
@@ -508,5 +520,5 @@ export async function searchTeams(org, query, { onClubs } = {}) {
   }
 
   teams.sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
-  return { clubs, teams }
+  return { clubs, teams, throttled }
 }

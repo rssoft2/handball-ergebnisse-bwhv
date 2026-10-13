@@ -84,22 +84,24 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
 
   // Mannschaften über Vereine suchen: Suchbegriff → Vereine (`cs`) → deren
   // Mannschaften samt Liga (`pcu`). Kurz entprellt, Ergebnisse nach dem Laden.
-  const [teamState, setTeamState] = useState({ status: 'idle', teams: [] })
+  const [teamState, setTeamState] = useState({ status: 'idle', teams: [], throttled: false })
 
   useEffect(() => {
     if (q.length < 2) {
-      setTeamState({ status: 'idle', teams: [] })
+      setTeamState({ status: 'idle', teams: [], throttled: false })
       return
     }
     let active = true
-    setTeamState({ status: 'loading', teams: [] })
+    setTeamState({ status: 'loading', teams: [], throttled: false })
     const timer = setTimeout(() => {
       searchTeams(ORG, q)
-        .then(({ teams }) => {
-          if (active) setTeamState({ status: 'ready', teams: teams.slice(0, 80) })
+        .then(({ teams, throttled }) => {
+          if (active) {
+            setTeamState({ status: 'ready', teams: teams.slice(0, 80), throttled })
+          }
         })
         .catch(() => {
-          if (active) setTeamState({ status: 'error', teams: [] })
+          if (active) setTeamState({ status: 'error', teams: [], throttled: false })
         })
     }, 350)
     return () => {
@@ -167,19 +169,27 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
             <h2 className="mb-2 px-1 font-head text-xs font-semibold uppercase tracking-[0.06em] text-muted">
               Mannschaften
             </h2>
-            {teamState.status === 'error' ? (
+            {teamState.status === 'error' || (teamState.throttled && teamState.teams.length === 0) ? (
               <p className="px-1 text-sm text-muted">
-                Mannschaften konnten nicht geladen werden.
+                Handball4all drosselt gerade die Anfragen. Bitte einen Moment warten und
+                erneut suchen.
               </p>
             ) : teamState.teams.length > 0 ? (
-              <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-sm">
-                {teamState.teams.map((team) => (
-                  <TeamRow
-                    key={`${team.leagueId}:${team.teamName}`}
-                    team={team}
-                    onSelect={onSelect}
-                  />
-                ))}
+              <div className="space-y-2">
+                <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-sm">
+                  {teamState.teams.map((team) => (
+                    <TeamRow
+                      key={`${team.leagueId}:${team.teamName}`}
+                      team={team}
+                      onSelect={onSelect}
+                    />
+                  ))}
+                </div>
+                {teamState.throttled ? (
+                  <p className="px-1 text-xs text-faint">
+                    Es konnten evtl. nicht alle Mannschaften geladen werden.
+                  </p>
+                ) : null}
               </div>
             ) : teamState.status === 'loading' ? (
               <StateMessage status="loading" />
