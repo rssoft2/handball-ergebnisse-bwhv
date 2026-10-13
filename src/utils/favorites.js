@@ -90,10 +90,13 @@ export function isClubFavorite(favorites, clubName) {
   return favorites.clubs.some((item) => key(item.clubName) === needle)
 }
 
-export function isTeamFavorite(favorites, teamName) {
+// Mannschaften werden über Name UND Liga identifiziert: derselbe Name kann in
+// mehreren Ligen vorkommen (z.B. die erste Mannschaft jeder Altersklasse).
+export function isTeamFavorite(favorites, teamName, leagueId) {
   const needle = key(teamName)
   if (!needle) return false
-  return favorites.teams.some((item) => key(item.name) === needle)
+  const lid = String(leagueId ?? '').trim()
+  return favorites.teams.some((item) => key(item.name) === needle && item.leagueId === lid)
 }
 
 // Für die Hervorhebung in Tabelle und Spielen: Teamnamen aus Mannschafts-
@@ -139,10 +142,12 @@ export function toggleTeam(favorites, team) {
   const name = String(team?.name ?? team?.teamName ?? '').trim()
   if (!name) return favorites
   const leagueId = String(team?.leagueId ?? '').trim()
-  if (isTeamFavorite(favorites, name)) {
+  if (isTeamFavorite(favorites, name, leagueId)) {
     return {
       ...favorites,
-      teams: favorites.teams.filter((item) => key(item.name) !== key(name)),
+      teams: favorites.teams.filter(
+        (item) => !(key(item.name) === key(name) && item.leagueId === leagueId),
+      ),
     }
   }
   return {

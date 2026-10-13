@@ -80,7 +80,9 @@ theme persisted under `h4a:theme`. All UI text is German.
   `favoriteTeamNames`), `src/hooks/useFavorites.js` (State, Persistenz, Cross-Tab via
   `storage`-Event). Stern-Toggle (`FavoriteStar`) an Liga-Zeilen, Verein-/Team-Treffern und für
   die aktuelle Liga im Header. Favoriten-Tab (`FavoritesView`) listet Ligen / Vereine (aufklappbar
-  → lädt `fetchClubTeams` lazy) / Mannschaften. Hervorhebung in Tabelle/Spielen über
+  → lädt `fetchClubTeams` lazy) / Mannschaften. Eine Mannschaft ist über **Name + Liga**
+  identifiziert (derselbe Name, z. B. „HSG Ettlingen", kommt in vielen Ligen vor –
+  ohne die Liga würden alle diese Zeilen einen Stern bekommen). Hervorhebung in Tabelle/Spielen über
   `favoriteTeamNames` (Teamnamen **und** Vereinsnamen, weiterhin Teilstring-Match via
   `isFavoriteTeam`). Kein Standard-Favorit (leerer Start), kein Export.
 - Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.

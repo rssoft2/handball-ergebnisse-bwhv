@@ -31,7 +31,10 @@ export function useFavorites() {
 
   const isLeagueFavorite = useCallback((id) => leagueIsFav(favorites, id), [favorites])
   const isClubFavorite = useCallback((name) => clubIsFav(favorites, name), [favorites])
-  const isTeamFavorite = useCallback((name) => teamIsFav(favorites, name), [favorites])
+  const isTeamFavorite = useCallback(
+    (name, leagueId) => teamIsFav(favorites, name, leagueId),
+    [favorites],
+  )
 
   const toggleLeague = useCallback((league) => {
     setFavorites((prev) => toggleLeagueIn(prev, league))

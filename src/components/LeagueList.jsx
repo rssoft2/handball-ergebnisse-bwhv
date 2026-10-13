@@ -312,7 +312,7 @@ export default function LeagueList({
                           key={`${team.leagueId}:${team.teamName}`}
                           team={team}
                           onSelect={onSelect}
-                          starred={isTeamFavorite(team.teamName)}
+                          starred={isTeamFavorite(team.teamName, team.leagueId)}
                           onToggleStar={toggleTeam}
                         />
                       ))}
