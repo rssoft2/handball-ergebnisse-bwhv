@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { fetchTeamIndex } from '../api/h4a.js'
+import { ORG } from '../config.js'
 import StateMessage from './StateMessage.jsx'
 
 function ChevronRight() {
@@ -38,6 +40,22 @@ function LeagueRow({ league, onSelect }) {
   )
 }
 
+function TeamRow({ team, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(team.leagueId)}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-surface2 active:scale-[0.99]"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-ink">{team.teamName}</div>
+        <div className="truncate text-xs text-muted">{team.leagueName}</div>
+      </div>
+      <ChevronRight />
+    </button>
+  )
+}
+
 export default function LeagueList({ leagues, status, error, onSelect, onRetry }) {
   const [query, setQuery] = useState('')
   const [openGroups, setOpenGroups] = useState(() => new Set())
@@ -52,7 +70,7 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
   }, [leagues])
 
   const q = query.trim().toLowerCase()
-  const results = useMemo(() => {
+  const leagueResults = useMemo(() => {
     if (!q) return null
     return leagues.filter(
       (l) =>
@@ -63,6 +81,37 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
         l.section.toLowerCase().includes(q),
     )
   }, [leagues, q])
+
+  // Team-Index bei der ersten Suche im Hintergrund aufbauen (schonend, pro Liga
+  // gecacht). Ergebnisse erscheinen nach und nach.
+  const teamRunStarted = useRef(false)
+  const [teamIndex, setTeamIndex] = useState([])
+  const [teamProgress, setTeamProgress] = useState({ done: 0, total: 0 })
+  const [teamStatus, setTeamStatus] = useState('idle')
+
+  useEffect(() => {
+    if (teamRunStarted.current || !q || leagues.length === 0) return
+    teamRunStarted.current = true
+    setTeamStatus('loading')
+    fetchTeamIndex(ORG, leagues, {
+      onProgress: (entries, done, total) => {
+        setTeamIndex(entries)
+        setTeamProgress({ done, total })
+      },
+    })
+      .then((entries) => {
+        setTeamIndex(entries)
+        setTeamStatus('ready')
+      })
+      .catch(() => setTeamStatus('error'))
+  }, [q, leagues])
+
+  const teamResults = useMemo(() => {
+    if (!q) return null
+    return teamIndex.filter((t) => t.teamName.toLowerCase().includes(q)).slice(0, 60)
+  }, [q, teamIndex])
+
+  const indexing = teamStatus === 'loading' && teamProgress.done < teamProgress.total
 
   function toggle(group) {
     setOpenGroups((prev) => {
@@ -93,7 +142,7 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Liga suchen (z. B. Bezirksliga, weibliche C)"
+          placeholder="Liga oder Mannschaft suchen (z. B. Ettlingen, Bezirksliga)"
           className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-3 text-sm text-ink outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accentsoft"
         />
       </div>
@@ -102,16 +151,55 @@ export default function LeagueList({ leagues, status, error, onSelect, onRetry }
         <StateMessage status="loading" />
       ) : status === 'error' ? (
         <StateMessage status="error" error={error} onRetry={onRetry} />
-      ) : results ? (
-        results.length === 0 ? (
-          <StateMessage emptyText="Keine Liga gefunden." />
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-sm">
-            {results.map((league) => (
-              <LeagueRow key={league.id} league={league} onSelect={onSelect} />
-            ))}
+      ) : leagueResults ? (
+        <div className="space-y-4">
+          <div>
+            <h2 className="mb-2 px-1 font-head text-xs font-semibold uppercase tracking-[0.06em] text-muted">
+              Ligen
+            </h2>
+            {leagueResults.length === 0 ? (
+              <p className="px-1 text-sm text-muted">Keine passende Liga.</p>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-sm">
+                {leagueResults.map((league) => (
+                  <LeagueRow key={league.id} league={league} onSelect={onSelect} />
+                ))}
+              </div>
+            )}
           </div>
-        )
+
+          <div>
+            <h2 className="mb-2 px-1 font-head text-xs font-semibold uppercase tracking-[0.06em] text-muted">
+              Mannschaften
+            </h2>
+            {teamStatus === 'error' ? (
+              <p className="px-1 text-sm text-muted">
+                Mannschaften konnten nicht geladen werden.
+              </p>
+            ) : teamResults && teamResults.length > 0 ? (
+              <div className="space-y-2">
+                <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1 shadow-sm">
+                  {teamResults.map((team) => (
+                    <TeamRow
+                      key={`${team.leagueId}:${team.teamId}`}
+                      team={team}
+                      onSelect={onSelect}
+                    />
+                  ))}
+                </div>
+                {indexing ? (
+                  <p className="px-1 text-xs text-faint">
+                    Weitere Mannschaften werden geladen … ({teamProgress.done}/{teamProgress.total})
+                  </p>
+                ) : null}
+              </div>
+            ) : indexing || (teamStatus === 'loading' && teamIndex.length === 0) ? (
+              <StateMessage status="loading" />
+            ) : (
+              <p className="px-1 text-sm text-muted">Keine passende Mannschaft.</p>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="space-y-2">
           {groups.map(([group, items]) => {

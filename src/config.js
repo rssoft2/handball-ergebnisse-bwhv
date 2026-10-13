@@ -11,6 +11,10 @@ export const FAVORITE_TEAMS = ['HSG Ettlingen']
 // Daten werden für diese Dauer zwischengespeichert
 export const CACHE_TTL_MS = 5 * 60 * 1000
 
+// Mannschaftslisten je Liga (für die Team-Suche) ändern sich selten.
+// Lange TTL: der Index wird nur einmal aufgebaut und dann wiederverwendet.
+export const TEAM_INDEX_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
 // Basis-Link zu den öffentlichen Spielberichten
 export const REPORT_BASE = 'https://spo.handball4all.de/misc/sboPublicReports.php?sGID='
 

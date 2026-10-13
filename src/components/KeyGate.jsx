@@ -73,7 +73,7 @@ export default function KeyGate({ children }) {
         </p>
         <p className="mt-4 text-xs text-faint">
           Daten: handball4all.de · inoffizielle Ansicht
-          <br />© 2026 Frank Rabold
+          <br />© 2026 rssoft2
         </p>
       </div>
     </div>

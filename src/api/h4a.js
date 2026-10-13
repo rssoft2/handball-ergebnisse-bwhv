@@ -1,4 +1,4 @@
-import { API_BASE, CACHE_TTL_MS } from '../config.js'
+import { API_BASE, CACHE_TTL_MS, TEAM_INDEX_TTL_MS } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
 const CACHE_PREFIX = 'h4a:cache:v4'
@@ -36,7 +36,7 @@ async function getJson(params) {
 const memCache = new Map()
 
 function readCache(key) {
-  const fresh = (entry) => entry && Date.now() - entry.t < CACHE_TTL_MS
+  const fresh = (entry) => entry && Date.now() - entry.t < (entry.ttl ?? CACHE_TTL_MS)
 
   if (fresh(memCache.get(key))) return memCache.get(key).v
 
@@ -55,8 +55,9 @@ function readCache(key) {
   return null
 }
 
-function writeCache(key, value) {
+function writeCache(key, value, ttl) {
   const entry = { t: Date.now(), v: value }
+  if (ttl) entry.ttl = ttl
   memCache.set(key, entry)
   try {
     localStorage.setItem(`${CACHE_PREFIX}:${key}`, JSON.stringify(entry))
@@ -65,13 +66,13 @@ function writeCache(key, value) {
   }
 }
 
-async function getCached(key, loader, force = false) {
+async function getCached(key, loader, force = false, ttl) {
   if (!force) {
     const cached = readCache(key)
     if (cached) return cached
   }
   const value = await loader()
-  writeCache(key, value)
+  writeCache(key, value, ttl)
   return value
 }
 
@@ -387,4 +388,99 @@ export async function fetchLeague(org, league, force = false) {
     },
     force,
   )
+}
+
+// Index aller Mannschaften über die Ligen (für die Team-Suche). Die API kennt
+// keine eigene Teamsuche und drosselt bei zu vielen Anfragen (429). Daher:
+// pro Liga ein schlanker Aufruf (ohne `ca`, ohne Spielplan), sequentiell mit
+// Pause, pro Liga dauerhaft gecacht (wiederaufsetzbar) und Drosselung wird als
+// Abbruch gewertet. Fortschritt wird über `onProgress(entries, done, total)`
+// gemeldet; parallele Aufrufe teilen sich denselben Lauf.
+const TEAM_INDEX_MIN_INTERVAL_MS = 800
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isThrottled(error) {
+  return /\b(429|401)\b/.test(error?.message ?? '')
+}
+
+function teamListKey(org, leagueId) {
+  return `teamlist:${org}:${leagueId}`
+}
+
+async function buildTeamIndex(org, leagues, emit) {
+  const entries = []
+  const missing = []
+
+  const addLeague = (league, teams) => {
+    const leagueName = league.name || league.sname
+    for (const team of teams) {
+      const teamName = trim(team.teamName)
+      if (!teamName) continue
+      entries.push({
+        teamId: String(team.teamID),
+        teamName,
+        leagueId: league.id,
+        leagueName,
+        section: league.section,
+      })
+    }
+  }
+
+  for (const league of leagues) {
+    const cached = readCache(teamListKey(org, league.id))
+    if (cached) addLeague(league, cached)
+    else missing.push(league)
+  }
+
+  let done = leagues.length - missing.length
+  emit([...entries], done, leagues.length)
+
+  for (const league of missing) {
+    try {
+      const payload = await getJson({ cmd: 'ps', og: org, cl: league.id })
+      const teams = payload.content?.teamsList ?? []
+      writeCache(teamListKey(org, league.id), teams, TEAM_INDEX_TTL_MS)
+      addLeague(league, teams)
+    } catch (error) {
+      // Gedrosselt: Lauf hier beenden, bereits Gecachtes bleibt erhalten.
+      if (isThrottled(error)) break
+    }
+    done += 1
+    emit([...entries], done, leagues.length)
+    await delay(TEAM_INDEX_MIN_INTERVAL_MS)
+  }
+
+  entries.sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
+  emit([...entries], done, leagues.length)
+  return entries
+}
+
+let teamIndexRun = null
+
+export function fetchTeamIndex(org, leagues, { onProgress } = {}) {
+  if (teamIndexRun) {
+    if (onProgress) teamIndexRun.listeners.add(onProgress)
+    return teamIndexRun.promise
+  }
+
+  const listeners = new Set()
+  if (onProgress) listeners.add(onProgress)
+  const emit = (entries, done, total) => {
+    for (const listener of listeners) {
+      try {
+        listener(entries, done, total)
+      } catch {
+        /* Listener-Fehler ignorieren */
+      }
+    }
+  }
+
+  const promise = buildTeamIndex(org, leagues, emit).finally(() => {
+    teamIndexRun = null
+  })
+  teamIndexRun = { promise, listeners }
+  return promise
 }
