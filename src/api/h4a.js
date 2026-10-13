@@ -5,16 +5,22 @@ import {
   CLUB_TEAMS_TTL_MS,
   MAX_CLUBS_PER_SEARCH,
   CLUB_FETCH_INTERVAL_MS,
+  THROTTLE_RETRIES,
+  THROTTLE_BACKOFF_MS,
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
 const CACHE_PREFIX = 'h4a:cache:v6'
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 /* ------------------------------------------------------------------ */
 /* HTTP                                                                */
 /* ------------------------------------------------------------------ */
 
-async function getJson(params) {
+// Ein einzelner Aufruf. Bei Drosselung wird der Fehler markiert (`throttled`),
+// damit `getJson` ihn mit Backoff wiederholen kann.
+async function requestJson(params) {
   const url = new URL(API_BASE)
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== '') {
@@ -26,7 +32,9 @@ async function getJson(params) {
   const text = await res.text()
 
   if (res.status === 429 || res.status === 401 || /too many requests/i.test(text)) {
-    throw new Error(`Die Handball4all-Schnittstelle drosselt gerade (${res.status}).`)
+    const error = new Error(`Die Handball4all-Schnittstelle drosselt gerade (${res.status}).`)
+    error.throttled = true
+    throw error
   }
   if (!res.ok) {
     throw new Error(`Die Handball4all-Schnittstelle antwortet mit Fehler ${res.status}.`)
@@ -42,9 +50,27 @@ async function getJson(params) {
   const payload = Array.isArray(data) ? data[0] : data
   if (!payload) throw new Error('Leere Antwort der Schnittstelle.')
   if (payload.error) {
-    throw new Error(`Die Schnittstelle meldet einen Fehler: ${payload.error}`)
+    const error = new Error(`Die Schnittstelle meldet einen Fehler: ${payload.error}`)
+    if (/too many requests/i.test(String(payload.error))) error.throttled = true
+    throw error
   }
   return payload
+}
+
+// Bei Drosselung (429) ein paar Mal mit wachsendem Abstand erneut versuchen –
+// die API erlaubt nur wenige Anfragen pro Zeitfenster.
+async function getJson(params) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await requestJson(params)
+    } catch (error) {
+      if (error.throttled && attempt < THROTTLE_RETRIES) {
+        await sleep(THROTTLE_BACKOFF_MS * (attempt + 1))
+        continue
+      }
+      throw error
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -417,12 +443,8 @@ export async function fetchLeague(org, league, force = false) {
 // die Mannschaften des Vereins samt Liga ab. Der Suchtext steht im Parameter,
 // der wie der Befehl heißt (`cs=<text>`).
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 function isThrottled(error) {
-  return /\b(429|401)\b|\btoo many requests\b/i.test(error?.message ?? '')
+  return error?.throttled === true || /\b(429|401)\b|\btoo many requests\b/i.test(error?.message ?? '')
 }
 
 // Vereine zu einem Suchbegriff. Liefert [{ clubId, clubName }].
@@ -500,7 +522,7 @@ export async function searchTeams(org, query, { onClubs } = {}) {
   const seen = new Set()
   let throttled = false
   for (const club of limited) {
-    await delay(CLUB_FETCH_INTERVAL_MS)
+    await sleep(CLUB_FETCH_INTERVAL_MS)
     let clubTeams
     try {
       clubTeams = await fetchClubTeams(org, club)

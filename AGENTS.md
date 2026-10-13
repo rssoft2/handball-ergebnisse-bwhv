@@ -79,9 +79,11 @@ theme persisted under `h4a:theme`. All UI text is German.
   gruppiert) → daraus die eigenen Mannschaften (Abgleich des Kurznamens aus den Spielen mit
   dem Vereinsnamen via `isSubsequence`). **Merkregel**: der Suchtext steht im Parameter, der
   wie der Befehl heißt (`cs=<text>`). `searchTeams` in `api/h4a.js`; max. `MAX_CLUBS_PER_SEARCH`
-  Vereine je Suche, ~0,4 s Pause, Vereine 10 min / Vereinsteams 24 h gecacht.
-  **Achtung Rate-Limit**: die API drosselt schnell (429/401 oder Body
-  `{ "error": "Too many requests" }`) → Suche bricht bei Drosselung ab.
+  Vereine je Suche, ~0,6 s Pause, Vereine 10 min / Vereinsteams 24 h gecacht.
+  **Rate-Limit**: die API drosselt sehr schnell (429/401 oder Body
+  `{ "error": "Too many requests" }`). Deshalb wiederholt `getJson` gedrosselte Aufrufe
+  automatisch mit Backoff (`THROTTLE_RETRIES`/`THROTTLE_BACKOFF_MS`); erst danach bricht die
+  Suche ab („drosselt gerade … bitte warten").
 - Zugangshürde: `KeyGate` verlangt `?k=<secret>` (sonst „Kein Zugang"), merkt sich die
   Freigabe unter `h4a:key`, `k` bleibt in der URL. Nur der SHA-256-Hash steht in
   `config.js` (`ACCESS_HASH`); Secret nur im Einladungslink, **nicht** im Repo. Reine

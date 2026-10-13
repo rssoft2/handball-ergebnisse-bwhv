@@ -20,6 +20,11 @@ export const CLUB_TEAMS_TTL_MS = 24 * 60 * 60 * 1000
 export const MAX_CLUBS_PER_SEARCH = 8
 export const CLUB_FETCH_INTERVAL_MS = 600
 
+// Die API erlaubt nur wenige Anfragen pro Zeitfenster (sonst 429). Bei einer
+// Drosselung wird mit wachsendem Abstand erneut versucht.
+export const THROTTLE_RETRIES = 3
+export const THROTTLE_BACKOFF_MS = 1500
+
 // Basis-Link zu den öffentlichen Spielberichten
 export const REPORT_BASE = 'https://spo.handball4all.de/misc/sboPublicReports.php?sGID='
 
