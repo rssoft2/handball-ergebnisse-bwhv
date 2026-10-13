@@ -1,4 +1,16 @@
-export default function Header({ meta, onRefresh, loading, onBack, theme, onToggleTheme }) {
+import FavoriteStar from './FavoriteStar.jsx'
+
+export default function Header({
+  meta,
+  onRefresh,
+  loading,
+  onBack,
+  theme,
+  onToggleTheme,
+  starred,
+  onToggleStar,
+  starLabel,
+}) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3">
@@ -86,6 +98,15 @@ export default function Header({ meta, onRefresh, loading, onBack, theme, onTogg
               </svg>
             )}
           </button>
+        ) : null}
+
+        {onToggleStar ? (
+          <FavoriteStar
+            active={Boolean(starred)}
+            label={starLabel || 'Liga'}
+            onToggle={onToggleStar}
+            className="border border-line bg-surface"
+          />
         ) : null}
 
         {onRefresh ? (

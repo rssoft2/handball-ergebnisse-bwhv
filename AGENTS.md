@@ -69,19 +69,29 @@ theme persisted under `h4a:theme`. All UI text is German.
 
 ## Current state / decisions
 
-- Screens: **LeagueList** (bundesweit + Bereich 246, gruppiert nach
-  Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden / Minis,
-  durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Aktuelle Spiele,
+- Screens: **LeagueList** (Tabs **Auswahl** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
+  gruppiert nach Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden /
+  Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Aktuelle Spiele,
   Tabelle, Kommende Spiele). Aktuelle Spiele aufsteigend, initial nur die letzten 7 Tage,
   Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
+- **Favoriten** (Ligen, Vereine, Mannschaften) **pro Gerät** in `localStorage` unter
+  `h4a:favorites:v1` — kein Backend/Login, nicht geräteübergreifend. `src/utils/favorites.js`
+  (pure: `load/save/toggle` + `isLeagueFavorite`/`isClubFavorite`/`isTeamFavorite`/
+  `favoriteTeamNames`), `src/hooks/useFavorites.js` (State, Persistenz, Cross-Tab via
+  `storage`-Event). Stern-Toggle (`FavoriteStar`) an Liga-Zeilen, Verein-/Team-Treffern und für
+  die aktuelle Liga im Header. Favoriten-Tab (`FavoritesView`) listet Ligen / Vereine (aufklappbar
+  → lädt `fetchClubTeams` lazy) / Mannschaften. Hervorhebung in Tabelle/Spielen über
+  `favoriteTeamNames` (Teamnamen **und** Vereinsnamen, weiterhin Teilstring-Match via
+  `isFavoriteTeam`). Kein Standard-Favorit (leerer Start), kein Export.
 - Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.
-- Suche im LeagueList filtert Ligen **und** Mannschaften (search-as-you-type, Teams mit
-  Liga-Label). Mannschaften kommen über die API-Suche: `cmd=cs&cs=<text>` (Vereinssuche,
-  bis 50 Treffer mit `id`=ClubID) → je Verein `cmd=pcu&c=<clubId>` (alle Spiele nach Liga
-  gruppiert) → daraus die eigenen Mannschaften (Abgleich des Kurznamens aus den Spielen mit
-  dem Vereinsnamen via `isSubsequence`). **Merkregel**: der Suchtext steht im Parameter, der
-  wie der Befehl heißt (`cs=<text>`). `searchTeams` in `api/h4a.js`; max. `MAX_CLUBS_PER_SEARCH`
-  Vereine je Suche, ~0,6 s Pause, Vereine 10 min / Vereinsteams 24 h gecacht.
+- Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
+  mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
+  `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein
+  `cmd=pcu&c=<clubId>` (alle Spiele nach Liga gruppiert) → daraus die eigenen Mannschaften
+  (Abgleich des Kurznamens aus den Spielen mit dem Vereinsnamen via `isSubsequence`).
+  **Merkregel**: der Suchtext steht im Parameter, der wie der Befehl heißt (`cs=<text>`).
+  `searchTeams` in `api/h4a.js`; max. `MAX_CLUBS_PER_SEARCH` Vereine je Suche, ~0,6 s Pause,
+  Vereine 10 min / Vereinsteams 24 h gecacht. `fetchClubTeams` ist exportiert (für Favoriten).
   **Rate-Limit**: die API drosselt sehr schnell (429/401 oder Body
   `{ "error": "Too many requests" }`). Deshalb wiederholt `getJson` gedrosselte Aufrufe
   automatisch mit Backoff (`THROTTLE_RETRIES`/`THROTTLE_BACKOFF_MS`); erst danach bricht die

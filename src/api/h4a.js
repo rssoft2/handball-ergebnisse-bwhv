@@ -445,7 +445,7 @@ export async function fetchLeague(org, league, force = false) {
 // die Mannschaften des Vereins samt Liga ab. Der Suchtext steht im Parameter,
 // der wie der Befehl heißt (`cs=<text>`).
 
-function isThrottled(error) {
+export function isThrottled(error) {
   return error?.throttled === true || /\b(429|401)\b|\btoo many requests\b/i.test(error?.message ?? '')
 }
 
@@ -466,7 +466,7 @@ async function findClubs(org, query) {
 }
 
 // Mannschaften eines Vereins (aus dessen Spielen) mit Liga-Label.
-async function fetchClubTeams(org, club) {
+export async function fetchClubTeams(org, club) {
   const key = `clubteams:${org}:${club.clubId}`
   const cached = readCache(key)
   if (cached) return cached

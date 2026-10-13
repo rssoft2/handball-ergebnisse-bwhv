@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { FAVORITE_TEAMS, ORG, REGION } from './config.js'
+import { ORG, REGION } from './config.js'
 import { fetchBwhvLeagues, fetchLeague } from './api/h4a.js'
 import { useAsync } from './hooks/useAsync.js'
+import { useFavorites } from './hooks/useFavorites.js'
 import Header from './components/Header.jsx'
 import LeagueList from './components/LeagueList.jsx'
 import LeagueDetail from './components/LeagueDetail.jsx'
@@ -19,6 +20,8 @@ function readTheme() {
 export default function App() {
   const [selected, setSelected] = useState(readLeagueFromUrl)
   const [theme, setTheme] = useState(readTheme)
+  const [tab, setTab] = useState('browse')
+  const favorites = useFavorites()
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -53,6 +56,14 @@ export default function App() {
   const showingDetail = Boolean(selected)
   const data = detail.data
 
+  const currentLeague = selected
+    ? {
+        id: String(selected),
+        name: data?.meta?.name || leagues.data?.find((l) => l.id === selected)?.name || '',
+        level: leagues.data?.find((l) => l.id === selected)?.level || '',
+      }
+    : null
+
   // Nur im Dev-Server: ?crash=1 erzwingt einen Renderfehler zum Testen der Error Boundary.
   if (import.meta.env.DEV && new URLSearchParams(window.location.search).has('crash')) {
     throw new Error('Testfehler (Error Boundary)')
@@ -71,6 +82,9 @@ export default function App() {
         loading={detail.status === 'loading'}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+        starred={showingDetail ? favorites.isLeagueFavorite(selected) : undefined}
+        onToggleStar={showingDetail ? () => favorites.toggleLeague(currentLeague) : undefined}
+        starLabel={currentLeague?.name || data?.meta?.name}
       />
 
       <main className="mx-auto max-w-3xl px-4 py-4">
@@ -80,7 +94,7 @@ export default function App() {
             status={detail.status}
             error={detail.error}
             onReload={detail.reload}
-            favoriteTeams={FAVORITE_TEAMS}
+            favoriteTeams={favorites.favoriteTeams}
           />
         ) : (
           <LeagueList
@@ -89,6 +103,15 @@ export default function App() {
             error={leagues.error}
             onSelect={setSelected}
             onRetry={leagues.reload}
+            tab={tab}
+            onTabChange={setTab}
+            favorites={favorites.favorites}
+            isLeagueFavorite={favorites.isLeagueFavorite}
+            isClubFavorite={favorites.isClubFavorite}
+            isTeamFavorite={favorites.isTeamFavorite}
+            toggleLeague={favorites.toggleLeague}
+            toggleClub={favorites.toggleClub}
+            toggleTeam={favorites.toggleTeam}
           />
         )}
       </main>

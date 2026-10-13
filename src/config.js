@@ -5,9 +5,6 @@ export const API_BASE = 'https://spo.handball4all.de/service/if_g_json.php'
 export const ORG = '216'
 export const REGION = '246'
 
-// Teams, die in Tabelle und Spielen hervorgehoben werden (Teilstring-Vergleich)
-export const FAVORITE_TEAMS = ['HSG Ettlingen']
-
 // Daten werden für diese Dauer zwischengespeichert
 export const CACHE_TTL_MS = 5 * 60 * 1000
 
