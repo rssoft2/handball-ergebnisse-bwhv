@@ -35,7 +35,7 @@ export default function LeagueDetail({ data, status, error, onReload, favoriteTe
   return (
     <div className="space-y-8">
       <Section
-        title="Aktuelle Spiele"
+        title="Letzte Spiele"
         subtitle={data.live.length > 0 ? `${data.live.length} live` : undefined}
       >
         <MatchList
