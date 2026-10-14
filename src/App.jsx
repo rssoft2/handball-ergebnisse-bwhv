@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ORG, REGION } from './config.js'
 import { fetchBwhvLeagues, fetchLeague } from './api/h4a.js'
 import { useAsync } from './hooks/useAsync.js'
 import { useFavorites } from './hooks/useFavorites.js'
+import { useReports } from './hooks/useReports.js'
+import { startOfDaysAgo } from './utils/format.js'
 import Header from './components/Header.jsx'
 import LeagueList from './components/LeagueList.jsx'
 import LeagueDetail from './components/LeagueDetail.jsx'
+import ReportStatsScreen from './components/ReportStatsScreen.jsx'
+import ReportTimelineScreen from './components/ReportTimelineScreen.jsx'
 
 function readLeagueFromUrl() {
   return new URLSearchParams(window.location.search).get('cl') || ''
@@ -21,6 +25,7 @@ export default function App() {
   const [selected, setSelected] = useState(readLeagueFromUrl)
   const [theme, setTheme] = useState(readTheme)
   const [tab, setTab] = useState('browse')
+  const [reportNav, setReportNav] = useState(null)
   const favorites = useFavorites()
 
   useEffect(() => {
@@ -44,6 +49,10 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
+  }, [selected, reportNav])
+
+  useEffect(() => {
+    setReportNav(null)
   }, [selected])
 
   const leagues = useAsync(() => fetchBwhvLeagues(ORG, REGION), [ORG, REGION])
@@ -53,7 +62,25 @@ export default function App() {
     Boolean(selected),
   )
 
+  // Die zuletzt gespielten Partien (wie im Liga-Detail sichtbar) im Hintergrund
+  // als Berichte vorladen.
+  const reportGames = useMemo(() => {
+    if (!detail.data) return []
+    const since = startOfDaysAgo(7).getTime()
+    return [...detail.data.live, ...detail.data.played]
+      .filter((g) => g.done && g.reportId && g.dateObj != null && g.dateObj >= since)
+      .sort((a, b) => (b.dateObj ?? 0) - (a.dateObj ?? 0))
+  }, [detail.data])
+
+  const reports = useReports(reportGames, Boolean(selected))
+
+  // Bericht beim Öffnen sicherstellen (deckt auch Spiele außerhalb der 7 Tage ab).
+  useEffect(() => {
+    if (reportNav?.game?.reportId) reports.ensure(reportNav.game.reportId)
+  }, [reportNav, reports.ensure])
+
   const showingDetail = Boolean(selected)
+  const inReport = Boolean(reportNav)
   const data = detail.data
 
   const currentLeague = selected
@@ -73,28 +100,51 @@ export default function App() {
     <div className="min-h-screen bg-bg text-ink">
       <Header
         meta={
-          showingDetail
-            ? data?.meta
-            : { name: 'Handball-Ergebnisse', subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein' }
+          inReport
+            ? {
+                name: `${reportNav.game.home} – ${reportNav.game.away}`,
+                subtitle: reportNav.kind === 'stats' ? 'Spielerstatistik' : 'Spielverlauf',
+              }
+            : showingDetail
+              ? data?.meta
+              : {
+                  name: 'Handball-Ergebnisse',
+                  subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
+                }
         }
-        onBack={showingDetail ? () => setSelected('') : undefined}
-        onRefresh={showingDetail ? detail.reload : undefined}
+        onBack={inReport ? () => setReportNav(null) : showingDetail ? () => setSelected('') : undefined}
+        onRefresh={inReport ? undefined : showingDetail ? detail.reload : undefined}
         loading={detail.status === 'loading'}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-        starred={showingDetail ? favorites.isLeagueFavorite(selected) : undefined}
-        onToggleStar={showingDetail ? () => favorites.toggleLeague(currentLeague) : undefined}
+        starred={!inReport && showingDetail ? favorites.isLeagueFavorite(selected) : undefined}
+        onToggleStar={!inReport && showingDetail ? () => favorites.toggleLeague(currentLeague) : undefined}
         starLabel={currentLeague?.name || data?.meta?.name}
       />
 
       <main className="mx-auto max-w-3xl px-4 py-4">
-        {showingDetail ? (
+        {inReport ? (
+          reportNav.kind === 'stats' ? (
+            <ReportStatsScreen
+              report={reports.get(reportNav.game.reportId)}
+              game={reportNav.game}
+              favoriteTeams={favorites.favoriteTeams}
+            />
+          ) : (
+            <ReportTimelineScreen
+              report={reports.get(reportNav.game.reportId)}
+              game={reportNav.game}
+              favoriteTeams={favorites.favoriteTeams}
+            />
+          )
+        ) : showingDetail ? (
           <LeagueDetail
             data={data}
             status={detail.status}
             error={detail.error}
             onReload={detail.reload}
             favoriteTeams={favorites.favoriteTeams}
+            onOpenReport={(game, kind) => setReportNav({ game, kind })}
           />
         ) : (
           <LeagueList

@@ -8,6 +8,7 @@ Mobile-first web app that shows **handball results, standings and fixtures** for
 Baden-Württembergischer HV (BWHV, org `216`) plus its region **Schwarzwald-Rhein**
 (`246`). German UI. Unofficial companion view, with **HSG Ettlingen** highlighted
 everywhere. No backend — the browser calls the public handball4all JSON API directly.
+Spielberichte (PDF) kommen über den CORS-fähigen Textdienst r.jina.ai (siehe unten).
 
 ## Commands
 
@@ -26,13 +27,15 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 
 ## Structure
 
-- `src/config.js` — `API_BASE`, `ORG`, `REGION`, `FAVORITE_TEAMS`, cache TTL, report base
+- `src/config.js` — `API_BASE`, `ORG`, `REGION`, cache TTLs, `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
 - `src/api/h4a.js` — all HTTP + normalization + cache + age/section grouping
+- `src/api/reports.js` — Spielberichte: Text über Jina holen + parsen (Meta, Spielerstatistik, Spielverlauf)
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
+- `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`) + form (`buildFormByTeam`)
-- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage
-- `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading
+- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, ReportHeader/ReportStatsScreen/ReportTimelineScreen
+- `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
 - `misc/` — reference screenshots (7meter design)
@@ -71,8 +74,8 @@ theme persisted under `h4a:theme`. All UI text is German.
 
 - Screens: **LeagueList** (Tabs **Auswahl** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
   gruppiert nach Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden /
-  Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Aktuelle Spiele,
-  Tabelle, Kommende Spiele). Aktuelle Spiele aufsteigend, initial nur die letzten 7 Tage,
+  Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
+  Tabelle, Kommende Spiele). Letzte Spiele aufsteigend, initial nur die letzten 7 Tage,
   Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
 - **Favoriten** (Ligen, Vereine, Mannschaften) **pro Gerät** in `localStorage` unter
   `h4a:favorites:v1` — kein Backend/Login, nicht geräteübergreifend. `src/utils/favorites.js`
@@ -86,6 +89,28 @@ theme persisted under `h4a:theme`. All UI text is German.
   `favoriteTeamNames` (Teamnamen **und** Vereinsnamen, weiterhin Teilstring-Match via
   `isFavoriteTeam`). Kein Standard-Favorit (leerer Start), kein Export.
 - Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.
+- **Spielberichte** (Statistik + Verlauf als eigene Screens): Die PDF-URL
+  (`REPORT_BASE`, `sGID`) setzt **kein CORS** → im Browser nicht direkt ladbar. Der Text kommt
+  über **r.jina.ai** (`REPORT_PROXY_BASE + REPORT_BASE + sGID`, CORS-frei, ~2,5 s) mit Header
+  **`X-Return-Format: text`** – dadurch hat jede PDF-Zeile eine eigene Textzeile (im Default-
+  Markdown sind die Spalten verschoben). `api/reports.js`:
+  - Meta aus „Übersicht Spieldaten" (Spielklasse, Nr., Datum/Zeit, Ort, Heim–Gast, Endstand, Sieger).
+  - **Mannschaftsliste** → Spieler je Team (Nr., Name, Tore, `7m/ Tore` wie `2/1`). Nur Zeilen mit
+    **Zahl in der Nr.-Spalte** sind Spieler, Buchstaben (A–E) sind Trainer/Betreuer (werden übersprungen).
+  - **Spielverlauf** (`hh:mm:ss  mm:ss  [Stand]  Aktion`) → Events: `Tor durch` / `7m-Tor durch` /
+    `7m, KEIN Tor durch`; `Auszeit …`; Karten `Verwarnung für` (gelb), `2-min Strafe für` (»2«-Karte),
+    `Disqualifikation für` (rot), `Disqualifikation mit Bericht für` (blau). Karten werden über
+    Team-Kürzel + Nr./Name den Spielern der Mannschaftsliste zugeordnet (Offizielle ohne Nr. fallen weg).
+  - **40. Tor**: `milestone` markiert den Spieler des 40. Tores **einer Mannschaft** (nicht des
+    Spiels insgesamt; `teamGoalRank` je Seite). Hervorhebung in Statistik + Verlauf. Oft `null`.
+  Die Team-Summen der Mannschaftsliste entsprechen dem Endstand. `ReportCards.jsx` rendert die Karten
+  (gelb/rot/blau als farbige Rechtecke, 2 Min als invertierte Karte mit »2'«). Die **3. Hinausstellung**
+  ist automatisch rot (der Bericht loggt dann zusätzlich eine Disqualifikation zur selben Zeit →
+  `applyCardRules` fasst beide zu einer roten Karte zusammen). Spielverlauf wird **umgekehrt** gezeigt
+  (Spielende oben, Spielanfang unten). `useReports` lädt die sichtbaren
+  „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor (Cache `h4a:report:v4`), `ensure(sGID)`
+  lädt on demand. Buttons **Statistik**/**Verlauf** (+ PDF) an `MatchCard`; Screens via `App`-State
+  `reportNav`, Header-Zurück zur Liga.
 - Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
   mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
   `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein

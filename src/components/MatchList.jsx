@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import MatchCard from './MatchCard.jsx'
 
-export default function MatchList({ games, favoriteTeams, emptyText, initialLimit = 10, initialGames }) {
+export default function MatchList({
+  games,
+  favoriteTeams,
+  emptyText,
+  initialLimit = 10,
+  initialGames,
+  onOpenReport,
+}) {
   const [expanded, setExpanded] = useState(false)
   const base = initialGames ?? games.slice(0, initialLimit)
   const hasMore = games.length > base.length
@@ -18,7 +25,7 @@ export default function MatchList({ games, favoriteTeams, emptyText, initialLimi
   return (
     <div className="space-y-2.5">
       {visible.map((game) => (
-        <MatchCard key={game.id} game={game} favoriteTeams={favoriteTeams} />
+        <MatchCard key={game.id} game={game} favoriteTeams={favoriteTeams} onOpenReport={onOpenReport} />
       ))}
 
       {hasMore ? (

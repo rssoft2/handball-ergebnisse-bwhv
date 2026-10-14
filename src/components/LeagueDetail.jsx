@@ -17,7 +17,7 @@ function Section({ title, subtitle, children }) {
   )
 }
 
-export default function LeagueDetail({ data, status, error, onReload, favoriteTeams }) {
+export default function LeagueDetail({ data, status, error, onReload, favoriteTeams, onOpenReport }) {
   if (status === 'loading' && !data) {
     return <StateMessage status="loading" />
   }
@@ -42,6 +42,7 @@ export default function LeagueDetail({ data, status, error, onReload, favoriteTe
           games={current}
           initialGames={recent}
           favoriteTeams={favoriteTeams}
+          onOpenReport={onOpenReport}
           emptyText="Noch keine Spiele gespielt."
         />
       </Section>
