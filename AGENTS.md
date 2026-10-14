@@ -108,7 +108,3 @@ theme persisted under `h4a:theme`. All UI text is German.
 - Git: `main`, remote `origin` = `https://github.com/rssoft2/handball-ergebnisse-bwhv`.
 - Hosting: **GitHub Pages** via Actions → https://rssoft2.github.io/handball-ergebnisse-bwhv/
 
-## Next steps / open questions
-
-- Optional: scorer/top-scorer list feature (no data source wired up yet).
-- Optional: custom domain (CNAME), PWA.

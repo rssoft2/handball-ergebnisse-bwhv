@@ -228,7 +228,16 @@ function normalizeGame(game) {
   const homeGoals = parseGoals(game.gHomeGoals)
   const awayGoals = parseGoals(game.gGuestGoals)
   const live = Boolean(game.live)
+  const done = homeGoals !== null && awayGoals !== null
   const date = parseGameDate(game.gDate, game.gTime)
+  const startMs = date ? date.getTime() : null
+
+  // Status über die Anstoßzeit: vorher anstehend, danach live (Flag) bzw. beendet.
+  let status
+  if (live) status = 'live'
+  else if (startMs !== null ? Date.now() >= startMs : done) status = 'finished'
+  else status = 'upcoming'
+
   return {
     id: game.gID,
     reportId: game.sGID,
@@ -245,9 +254,10 @@ function normalizeGame(game) {
     town: trim(game.gGymnasiumTown),
     street: trim(game.gGymnasiumStreet),
     live,
-    done: homeGoals !== null && awayGoals !== null,
+    done,
+    status,
     // Als Zeitstempel (Zahl) speichern – übersteht die JSON-Zwischenspeicherung.
-    dateObj: date ? date.getTime() : null,
+    dateObj: startMs,
   }
 }
 
@@ -307,6 +317,7 @@ function buildFormByTeam(played, nameMap, limit = 5) {
   }
 
   for (const game of played) {
+    if (!game.done) continue
     const home = game.homeGoals > game.awayGoals ? 'S' : game.homeGoals < game.awayGoals ? 'N' : 'U'
     const away = home === 'S' ? 'N' : home === 'N' ? 'S' : 'U'
     push(nameMap.get(game.home), home)
@@ -349,7 +360,8 @@ function normalizeLeague(payload) {
   const rawGames = content.futureGames?.games ?? []
   const matches = rawGames.map(normalizeGame)
 
-  const played = matches.filter((m) => m.done && !m.live).sort(byDateDesc)
+  const played = matches.filter((m) => m.status === 'finished').sort(byDateDesc)
+  const playedDone = played.filter((m) => m.done)
   const gameTeamNames = new Set()
   for (const m of matches) {
     gameTeamNames.add(m.home)
@@ -359,7 +371,7 @@ function normalizeLeague(payload) {
     gameTeamNames,
     standings.map((s) => s.name),
   )
-  const formByTeam = buildFormByTeam(played, teamNameMap)
+  const formByTeam = buildFormByTeam(playedDone, teamNameMap)
 
   return {
     meta: {
@@ -372,8 +384,8 @@ function normalizeLeague(payload) {
     standings,
     played,
     formByTeam,
-    live: matches.filter((m) => m.live).sort(byDateAsc),
-    upcoming: matches.filter((m) => !m.done && !m.live).sort(byDateAsc),
+    live: matches.filter((m) => m.status === 'live').sort(byDateAsc),
+    upcoming: matches.filter((m) => m.status === 'upcoming').sort(byDateAsc),
   }
 }
 
