@@ -22,6 +22,16 @@ export const CLUB_FETCH_INTERVAL_MS = 600
 export const THROTTLE_RETRIES = 3
 export const THROTTLE_BACKOFF_MS = 1500
 
+// Live-Ticker: Live-Spiele der API tragen gToken/gAppid. Die Ticker-Daten
+// kommen CORS-freigegeben (access-control-allow-origin: *) von if_ticker_data.php.
+export const TICKER_DATA_BASE = 'https://spo.handball4all.de/service/if_ticker_data.php'
+
+// Offizielle Ticker-Seite (Dojo-App) zum Verlinken/Öffnen in neuem Tab.
+export const TICKER_PAGE_BASE = 'https://spo.handball4all.de/service/ticker.html'
+
+// Der offizielle Ticker fragt selbst alle 15 s nach neuen Nachrichten.
+export const LIVE_POLL_MS = 15000
+
 // Basis-Link zu den öffentlichen Spielberichten (PDF). Die URL erlaubt kein
 // CORS, deshalb wird der Bericht im Browser über einen Textdienst geladen.
 export const REPORT_BASE = 'https://spo.handball4all.de/misc/sboPublicReports.php?sGID='

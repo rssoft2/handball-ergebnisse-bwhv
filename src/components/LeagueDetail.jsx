@@ -3,7 +3,7 @@ import StandingsTable from './StandingsTable.jsx'
 import MatchList from './MatchList.jsx'
 import { startOfDaysAgo } from '../utils/format.js'
 
-const byDateAsc = (a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0)
+const byDateDesc = (a, b) => (b.dateObj ?? 0) - (a.dateObj ?? 0)
 
 function Section({ title, subtitle, children }) {
   return (
@@ -17,7 +17,15 @@ function Section({ title, subtitle, children }) {
   )
 }
 
-export default function LeagueDetail({ data, status, error, onReload, favoriteTeams, onOpenReport }) {
+export default function LeagueDetail({
+  data,
+  status,
+  error,
+  onReload,
+  favoriteTeams,
+  onOpenReport,
+  onOpenLive,
+}) {
   if (status === 'loading' && !data) {
     return <StateMessage status="loading" />
   }
@@ -28,7 +36,8 @@ export default function LeagueDetail({ data, status, error, onReload, favoriteTe
 
   if (!data) return null
 
-  const current = [...data.live, ...data.played].sort(byDateAsc)
+  // Neueste Spiele oben, älteste unten.
+  const current = [...data.live, ...data.played].sort(byDateDesc)
   const since = startOfDaysAgo(7).getTime()
   const recent = current.filter((game) => game.dateObj != null && game.dateObj >= since)
 
@@ -43,6 +52,7 @@ export default function LeagueDetail({ data, status, error, onReload, favoriteTe
           initialGames={recent}
           favoriteTeams={favoriteTeams}
           onOpenReport={onOpenReport}
+          onOpenLive={onOpenLive}
           emptyText="Noch keine Spiele gespielt."
         />
       </Section>

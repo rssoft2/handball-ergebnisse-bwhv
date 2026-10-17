@@ -10,6 +10,7 @@ import LeagueList from './components/LeagueList.jsx'
 import LeagueDetail from './components/LeagueDetail.jsx'
 import ReportStatsScreen from './components/ReportStatsScreen.jsx'
 import ReportTimelineScreen from './components/ReportTimelineScreen.jsx'
+import LiveScreen from './components/LiveScreen.jsx'
 
 function readLeagueFromUrl() {
   return new URLSearchParams(window.location.search).get('cl') || ''
@@ -26,6 +27,7 @@ export default function App() {
   const [theme, setTheme] = useState(readTheme)
   const [tab, setTab] = useState('browse')
   const [reportNav, setReportNav] = useState(null)
+  const [liveNav, setLiveNav] = useState(null)
   const favorites = useFavorites()
 
   useEffect(() => {
@@ -49,10 +51,11 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
-  }, [selected, reportNav])
+  }, [selected, reportNav, liveNav])
 
   useEffect(() => {
     setReportNav(null)
+    setLiveNav(null)
   }, [selected])
 
   const leagues = useAsync(() => fetchBwhvLeagues(ORG, REGION), [ORG, REGION])
@@ -81,6 +84,7 @@ export default function App() {
 
   const showingDetail = Boolean(selected)
   const inReport = Boolean(reportNav)
+  const inLive = Boolean(liveNav)
   const data = detail.data
 
   const currentLeague = selected
@@ -100,30 +104,45 @@ export default function App() {
     <div className="min-h-screen bg-bg text-ink">
       <Header
         meta={
-          inReport
+          inLive
             ? {
-                name: `${reportNav.game.home} – ${reportNav.game.away}`,
-                subtitle: reportNav.kind === 'stats' ? 'Spielerstatistik' : 'Spielverlauf',
+                name: `${liveNav.home} – ${liveNav.away}`,
+                subtitle: 'Live-Ticker',
               }
-            : showingDetail
-              ? data?.meta
-              : {
-                  name: 'Handball-Ergebnisse',
-                  subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
+            : inReport
+              ? {
+                  name: `${reportNav.game.home} – ${reportNav.game.away}`,
+                  subtitle: reportNav.kind === 'stats' ? 'Spielerstatistik' : 'Spielverlauf',
                 }
+              : showingDetail
+                ? data?.meta
+                : {
+                    name: 'Handball-Ergebnisse',
+                    subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
+                  }
         }
-        onBack={inReport ? () => setReportNav(null) : showingDetail ? () => setSelected('') : undefined}
-        onRefresh={inReport ? undefined : showingDetail ? detail.reload : undefined}
+        onBack={
+          inLive
+            ? () => setLiveNav(null)
+            : inReport
+              ? () => setReportNav(null)
+              : showingDetail
+                ? () => setSelected('')
+                : undefined
+        }
+        onRefresh={inLive ? undefined : inReport ? undefined : showingDetail ? detail.reload : undefined}
         loading={detail.status === 'loading'}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-        starred={!inReport && showingDetail ? favorites.isLeagueFavorite(selected) : undefined}
-        onToggleStar={!inReport && showingDetail ? () => favorites.toggleLeague(currentLeague) : undefined}
+        starred={!inReport && !inLive && showingDetail ? favorites.isLeagueFavorite(selected) : undefined}
+        onToggleStar={!inReport && !inLive && showingDetail ? () => favorites.toggleLeague(currentLeague) : undefined}
         starLabel={currentLeague?.name || data?.meta?.name}
       />
 
       <main className="mx-auto max-w-3xl px-4 py-4">
-        {inReport ? (
+        {inLive ? (
+          <LiveScreen game={liveNav} favoriteTeams={favorites.favoriteTeams} />
+        ) : inReport ? (
           reportNav.kind === 'stats' ? (
             <ReportStatsScreen
               report={reports.get(reportNav.game.reportId)}
@@ -145,6 +164,7 @@ export default function App() {
             onReload={detail.reload}
             favoriteTeams={favorites.favoriteTeams}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
+            onOpenLive={(game) => setLiveNav(game)}
           />
         ) : (
           <LeagueList

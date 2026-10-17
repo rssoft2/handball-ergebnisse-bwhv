@@ -254,6 +254,8 @@ function normalizeGame(game) {
     town: trim(game.gGymnasiumTown),
     street: trim(game.gGymnasiumStreet),
     live,
+    token: trim(game.gToken),
+    appid: trim(game.gAppid),
     done,
     status,
     // Als Zeitstempel (Zahl) speichern – übersteht die JSON-Zwischenspeicherung.

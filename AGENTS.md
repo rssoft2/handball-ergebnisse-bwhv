@@ -30,8 +30,10 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/config.js` — `API_BASE`, `ORG`, `REGION`, cache TTLs, `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
 - `src/api/h4a.js` — all HTTP + normalization + cache + age/section grouping
 - `src/api/reports.js` — Spielberichte: Text über Jina holen + parsen (Meta, Spielerstatistik, Spielverlauf)
+- `src/api/live.js` — Live-Ticker: `if_ticker_data.php` abfragen + normalisieren
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
 - `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
+- `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`) + form (`buildFormByTeam`)
 - `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, ReportHeader/ReportStatsScreen/ReportTimelineScreen
@@ -59,6 +61,24 @@ into `live`, `played` (done, newest first) and `upcoming`. Spiele tragen `dateOb
 String → `getTime`-Crash). Cache prefix `h4a:cache:v7`;
 theme persisted under `h4a:theme`. All UI text is German.
 
+### Live-Ticker
+Live-Spiele tragen in der API `live: true` sowie `gToken`/`gAppid`; die Antwort enthält
+`head.live` als Poll-Intervall in Sekunden (> 0 solange live). `normalizeGame` legt
+`live`, `token`, `appid` offen. Die Ticker-Daten kommen **CORS-freigegeben**
+(`access-control-allow-origin: *`) per POST mit leerem Body:
+
+`https://spo.handball4all.de/service/if_ticker_data.php?token=<gToken>&cmd=<cmd>`
+
+- `cmd=getGameInfo` → Envelope (`status` 0 = ok, 3 = keine Daten) **plus** Spielobjekt:
+  `class_lname`, `home_lname`, `guest_lname`, `datetime` (`YYYY-MM-DD HH:mm:ss`),
+  `gym_name`/`gym_town`, `report.refereeA/B`, `status`/`status_description`.
+- `cmd=getAllGameInfo` → `team_home`/`team_guest.team_members[]` (`player_no`, `prename`, `name`).
+- `cmd=getAllTickerMessages` → **Array**; je Eintrag `game_time` (Sekunden), `message`
+  (deutscher Text), `home_score`, `guest_score`.
+
+Offizielle Seite: `ticker.html?token=&appid=` → `ticker/index.html?token=` (Dojo-App,
+kein `X-Frame-Options`). Der offizielle Ticker pollt selbst alle 15 s (max. 10×).
+
 ## Conventions
 
 - Use **semantic tokens** (`bg-surface`, `text-ink`, `text-muted`, `border-line`,
@@ -75,8 +95,8 @@ theme persisted under `h4a:theme`. All UI text is German.
 - Screens: **LeagueList** (Tabs **Auswahl** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
   gruppiert nach Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden /
   Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
-  Tabelle, Kommende Spiele). Letzte Spiele aufsteigend, initial nur die letzten 7 Tage,
-  Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
+  Tabelle, Kommende Spiele). Letzte Spiele **absteigend** (neueste oben), initial nur die
+  letzten 7 Tage, Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
 - **Favoriten** (Ligen, Vereine, Mannschaften) **pro Gerät** in `localStorage` unter
   `h4a:favorites:v1` — kein Backend/Login, nicht geräteübergreifend. `src/utils/favorites.js`
   (pure: `load/save/toggle` + `isLeagueFavorite`/`isClubFavorite`/`isTeamFavorite`/
@@ -111,6 +131,13 @@ theme persisted under `h4a:theme`. All UI text is German.
   „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor (Cache `h4a:report:v4`), `ensure(sGID)`
   lädt on demand. Buttons **Statistik**/**Verlauf** (+ PDF) an `MatchCard`; Screens via `App`-State
   `reportNav`, Header-Zurück zur Liga.
+- **Live-Ticker**: Ein Live-Spiel (`game.live && game.token`) zeigt an der `MatchCard` einen
+  roten **Live-Ticker**-Button → `LiveScreen` (App-State `liveNav`). `useLive(token)` lädt den
+  Snapshot und aktualisiert ihn alle 15 s (`LIVE_POLL_MS`). `api/live.js` klassifiziert die
+  Nachrichten per Präfix (`classifyMessage`: Tor / 7m / 7m-Wurf / Verwarnung / 2-min / Disq. /
+  Auszeit / Spielstand). Kopf: Liga, LIVE-Badge, Teams, Stand + Spielzeit (aus der letzten
+  Aktion); Liste **neueste Aktion oben**; Karten via `CardMark`; „Spielstand"-Meldungen
+  ausgeblendet. Button **Offizieller Ticker** öffnet `ticker.html?token=&appid=` in neuem Tab.
 - Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
   mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
   `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein

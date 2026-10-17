@@ -8,6 +8,7 @@ export default function MatchList({
   initialLimit = 10,
   initialGames,
   onOpenReport,
+  onOpenLive,
 }) {
   const [expanded, setExpanded] = useState(false)
   const base = initialGames ?? games.slice(0, initialLimit)
@@ -25,7 +26,13 @@ export default function MatchList({
   return (
     <div className="space-y-2.5">
       {visible.map((game) => (
-        <MatchCard key={game.id} game={game} favoriteTeams={favoriteTeams} onOpenReport={onOpenReport} />
+        <MatchCard
+          key={game.id}
+          game={game}
+          favoriteTeams={favoriteTeams}
+          onOpenReport={onOpenReport}
+          onOpenLive={onOpenLive}
+        />
       ))}
 
       {hasMore ? (

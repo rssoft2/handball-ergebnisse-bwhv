@@ -10,7 +10,7 @@ function TeamName({ name, favorite }) {
   )
 }
 
-export default function MatchCard({ game, favoriteTeams, onOpenReport }) {
+export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLive }) {
   const homeFav = isFavoriteTeam(game.home, favoriteTeams)
   const awayFav = isFavoriteTeam(game.away, favoriteTeams)
   const isFav = homeFav || awayFav
@@ -63,6 +63,21 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport }) {
           {[game.venue, game.town].filter(Boolean).join(', ')}
         </div>
       )}
+
+      {game.live && game.token ? (
+        <div className="mt-2 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => onOpenLive?.(game)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-700 active:scale-95"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Live-Ticker
+          </button>
+        </div>
+      ) : null}
 
       {game.done && game.reportId ? (
         <div className="mt-2 flex items-center justify-center gap-2">
