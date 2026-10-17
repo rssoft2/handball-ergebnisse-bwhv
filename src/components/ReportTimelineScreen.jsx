@@ -4,11 +4,7 @@ import { CardMark } from './ReportCards.jsx'
 
 function OutcomeBadge({ event }) {
   if (event.type === 'timeout') {
-    return (
-      <span className="rounded-full bg-surface2 px-2 py-0.5 text-[10px] font-semibold text-muted">
-        Auszeit
-      </span>
-    )
+    return <CardMark kind="timeout" />
   }
   if (event.type === 'card') {
     return <CardMark kind={event.card} />

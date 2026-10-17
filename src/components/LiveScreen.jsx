@@ -57,13 +57,7 @@ function KindBadge({ kind }) {
       </span>
     )
   }
-  if (kind === 'timeout') {
-    return (
-      <span className="rounded-full bg-surface2 px-2 py-0.5 text-[10px] font-semibold text-muted">
-        Auszeit
-      </span>
-    )
-  }
+  if (kind === 'timeout') return <CardMark kind="timeout" />
   return null
 }
 
@@ -89,7 +83,10 @@ export default function LiveScreen({ game, favoriteTeams }) {
   const awayFav = isFavoriteTeam(away, favoriteTeams)
 
   // Neueste Aktion oben, Spielanfang unten (wie im Spielverlauf).
-  const actions = [...data.actions].filter((a) => a.kind !== 'score').reverse()
+  // "Spielstand"- und Uhr-Meldungen ("Spielzeit gestoppt") sind keine Aktionen.
+  const actions = [...data.actions]
+    .filter((a) => a.kind !== 'score' && a.kind !== 'clock')
+    .reverse()
   const latest = data.actions[data.actions.length - 1]
   const score =
     latest && latest.homeScore !== null && latest.guestScore !== null

@@ -32,6 +32,11 @@ export const TICKER_PAGE_BASE = 'https://spo.handball4all.de/service/ticker.html
 // Der offizielle Ticker fragt selbst alle 15 s nach neuen Nachrichten.
 export const LIVE_POLL_MS = 15000
 
+// Übersicht aller laufenden Spiele (Live-Tab der Startseite): kurz cachen und
+// aktualisieren, solange der Tab offen ist.
+export const LIVE_LIST_POLL_MS = 20000
+export const LIVE_LIST_TTL_MS = 15000
+
 // Basis-Link zu den öffentlichen Spielberichten (PDF). Die URL erlaubt kein
 // CORS, deshalb wird der Bericht im Browser über einen Textdienst geladen.
 export const REPORT_BASE = 'https://spo.handball4all.de/misc/sboPublicReports.php?sGID='

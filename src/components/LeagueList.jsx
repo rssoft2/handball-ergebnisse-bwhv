@@ -3,6 +3,7 @@ import { searchTeams } from '../api/h4a.js'
 import { ORG } from '../config.js'
 import FavoriteStar from './FavoriteStar.jsx'
 import FavoritesView from './FavoritesView.jsx'
+import LiveGamesView from './LiveGamesView.jsx'
 import StateMessage from './StateMessage.jsx'
 
 function ChevronRight() {
@@ -99,25 +100,38 @@ function Card({ children }) {
   )
 }
 
-function Tabs({ tab, onChange }) {
+function Tabs({ tab, onChange, liveCount }) {
   const items = [
     { id: 'browse', label: 'Auswahl' },
+    { id: 'live', label: 'Live', count: liveCount },
     { id: 'favorites', label: 'Favoriten' },
   ]
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-surface p-1">
+    <div className="grid grid-cols-3 gap-1 rounded-xl border border-line bg-surface p-1">
       {items.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
-          className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+          className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold transition ${
             tab === item.id
               ? 'bg-accentsoft text-accent'
               : 'text-muted hover:bg-surface2 hover:text-ink'
           }`}
         >
+          {item.id === 'live' ? (
+            <span
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                item.count ? 'bg-red-600' : 'bg-faint'
+              }`}
+            />
+          ) : null}
           {item.label}
+          {item.id === 'live' && item.count ? (
+            <span className="rounded-full bg-red-600 px-1.5 text-[10px] font-bold tabular-nums text-white">
+              {item.count}
+            </span>
+          ) : null}
         </button>
       ))}
     </div>
@@ -133,6 +147,12 @@ export default function LeagueList({
   tab,
   onTabChange,
   favorites,
+  favoriteTeams,
+  liveGames,
+  liveStatus,
+  liveError,
+  onRetryLive,
+  onOpenLive,
   isLeagueFavorite,
   isClubFavorite,
   isTeamFavorite,
@@ -209,7 +229,7 @@ export default function LeagueList({
 
   return (
     <div className="space-y-3">
-      <Tabs tab={tab} onChange={onTabChange} />
+      <Tabs tab={tab} onChange={onTabChange} liveCount={liveGames?.length ?? 0} />
 
       {tab === 'favorites' ? (
         <FavoritesView
@@ -219,6 +239,15 @@ export default function LeagueList({
           onToggleLeague={toggleLeague}
           onToggleClub={toggleClub}
           onToggleTeam={toggleTeam}
+        />
+      ) : tab === 'live' ? (
+        <LiveGamesView
+          games={liveGames}
+          status={liveStatus}
+          error={liveError}
+          onRetry={onRetryLive}
+          favoriteTeams={favoriteTeams}
+          onOpenLive={onOpenLive}
         />
       ) : (
         <>

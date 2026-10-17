@@ -34,9 +34,10 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
 - `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
 - `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren
+- `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 20 s aktualisieren (Live-Tab)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`) + form (`buildFormByTeam`)
-- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, ReportHeader/ReportStatsScreen/ReportTimelineScreen
+- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, LiveScreen, ReportHeader/ReportStatsScreen/ReportTimelineScreen
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -92,7 +93,7 @@ kein `X-Frame-Options`). Der offizielle Ticker pollt selbst alle 15 s (max. 10×
 
 ## Current state / decisions
 
-- Screens: **LeagueList** (Tabs **Auswahl** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
+- Screens: **LeagueList** (Tabs **Auswahl** / **Live** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
   gruppiert nach Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden /
   Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
   Tabelle, Kommende Spiele). Letzte Spiele **absteigend** (neueste oben), initial nur die
@@ -131,13 +132,24 @@ kein `X-Frame-Options`). Der offizielle Ticker pollt selbst alle 15 s (max. 10×
   „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor (Cache `h4a:report:v4`), `ensure(sGID)`
   lädt on demand. Buttons **Statistik**/**Verlauf** (+ PDF) an `MatchCard`; Screens via `App`-State
   `reportNav`, Header-Zurück zur Liga.
+- **Live-Tab** (Startseite): listet alle laufenden Spiele landesweit + Bereich 246.
+  `fetchLiveGames(org, region)` zieht die `po`-Übersichten beider Bereiche, sammelt Spiele mit
+  `live === true` (inkl. Liga-Info), dedupliziert per `gID` und sortiert (Sektion → Alter → Level
+  → Liga → Zeit). `useLiveGames` lädt + aktualisiert alle 20 s (`LIVE_LIST_POLL_MS`, Cache-TTL
+  `LIVE_LIST_TTL_MS`), nur solange der Tab sichtbar ist. `LiveGamesView` zeigt Anzahl +
+  `MatchCard` je Spiel (Karte zeigt den Liga-Namen); Tabs zeigen die Live-Anzahl als Badge.
+  `head.live` der API ist **immer 0** – die Anzahl kommt aus `game.live`.
 - **Live-Ticker**: Ein Live-Spiel (`game.live && game.token`) zeigt an der `MatchCard` einen
   roten **Live-Ticker**-Button → `LiveScreen` (App-State `liveNav`). `useLive(token)` lädt den
   Snapshot und aktualisiert ihn alle 15 s (`LIVE_POLL_MS`). `api/live.js` klassifiziert die
   Nachrichten per Präfix (`classifyMessage`: Tor / 7m / 7m-Wurf / Verwarnung / 2-min / Disq. /
-  Auszeit / Spielstand). Kopf: Liga, LIVE-Badge, Teams, Stand + Spielzeit (aus der letzten
-  Aktion); Liste **neueste Aktion oben**; Karten via `CardMark`; „Spielstand"-Meldungen
-  ausgeblendet. Button **Offizieller Ticker** öffnet `ticker.html?token=&appid=` in neuem Tab.
+  Auszeit / Spielstand / Spielzeit). Kopf: Liga, LIVE-Badge, Teams, Stand + Spielzeit (aus der
+  letzten Aktion); Liste **neueste Aktion oben**; Karten via `CardMark`; „Spielstand"- und
+  Uhr-Meldungen („Spielzeit gestoppt/gestartet", `kind: 'clock'`) werden ausgeblendet.
+  Button **Offizieller Ticker** öffnet `ticker.html?token=&appid=` in neuem Tab. Die Roh­nachrichten
+  nennen die Teams   „Heimmannschaft"/„Gastmannschaft"; `simplifyMessage` vereinheitlicht in der Anzeige
+  („Erfolgreicher 7m-Wurf" → „7m Tor", Teams → „Heim"/„Gast", Auszeit → „Auszeit für Heim/Gast"),
+  Spielernummer bleibt erhalten (z. B. „7m Tor für Heim durch die Nummer 4", „Auszeit für Gast").
 - Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
   mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
   `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein

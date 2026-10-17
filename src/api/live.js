@@ -75,21 +75,37 @@ export function classifyMessage(message) {
   if (/^2-min Strafe/.test(head)) return 'two'
   if (/^Disqualifikation mit Bericht/.test(head)) return 'blue'
   if (/^Disqualifikation\b/.test(head)) return 'red'
-  if (/^Auszeit\b/.test(head)) return 'timeout'
+  if (/^(Mannschafts-)?Auszeit\b/.test(head)) return 'timeout'
+  // Reine Uhrsteuerung ("Spielzeit gestoppt"/"gestartet") – keine Aktion.
+  if (/^Spielzeit\b/.test(head)) return 'clock'
   if (head.slice(0, 10) === 'Spielstand') return 'score'
   return 'info'
+}
+
+// Ticker-Texte für die Anzeige vereinfachen: Teams nur als "Heim"/"Gast"
+// (Nummer/Spieler bleiben unberührt) und "Erfolgreicher 7m-Wurf" -> "7m Tor".
+export function simplifyMessage(message) {
+  return String(message || '')
+    .replace(/^Erfolgreicher 7m-Wurf/, '7m Tor')
+    .replace(/Mannschafts-Auszeit der (Heim|Gast)mannschaft/g, 'Auszeit für $1')
+    .replace(/ für die (Heim|Gast)mannschaft/g, ' für $1')
+    .replace(/ der (Heim|Gast)mannschaft/g, ' für $1')
+    .replace(/(Heim|Gast)mannschaft/g, '$1')
 }
 
 function normalizeActions(actions) {
   if (!Array.isArray(actions)) return []
   return actions
-    .map((a) => ({
-      time: Number(a.game_time),
-      message: String(a.message ?? '').trim(),
-      homeScore: Number.isFinite(Number(a.home_score)) ? Number(a.home_score) : null,
-      guestScore: Number.isFinite(Number(a.guest_score)) ? Number(a.guest_score) : null,
-      kind: classifyMessage(a.message),
-    }))
+    .map((a) => {
+      const raw = String(a.message ?? '').trim()
+      return {
+        time: Number(a.game_time),
+        message: simplifyMessage(raw),
+        homeScore: Number.isFinite(Number(a.home_score)) ? Number(a.home_score) : null,
+        guestScore: Number.isFinite(Number(a.guest_score)) ? Number(a.guest_score) : null,
+        kind: classifyMessage(raw),
+      }
+    })
     .filter((a) => a.message)
 }
 

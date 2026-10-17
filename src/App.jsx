@@ -4,6 +4,7 @@ import { fetchBwhvLeagues, fetchLeague } from './api/h4a.js'
 import { useAsync } from './hooks/useAsync.js'
 import { useFavorites } from './hooks/useFavorites.js'
 import { useReports } from './hooks/useReports.js'
+import { useLiveGames } from './hooks/useLiveGames.js'
 import { startOfDaysAgo } from './utils/format.js'
 import Header from './components/Header.jsx'
 import LeagueList from './components/LeagueList.jsx'
@@ -64,6 +65,8 @@ export default function App() {
     [selected],
     Boolean(selected),
   )
+  // Nur laden/aktualisieren, solange der Live-Tab der Startseite sichtbar ist.
+  const liveGames = useLiveGames(ORG, REGION, tab === 'live' && !selected && !liveNav)
 
   // Die zuletzt gespielten Partien (wie im Liga-Detail sichtbar) im Hintergrund
   // als Berichte vorladen.
@@ -176,6 +179,12 @@ export default function App() {
             tab={tab}
             onTabChange={setTab}
             favorites={favorites.favorites}
+            favoriteTeams={favorites.favoriteTeams}
+            liveGames={liveGames.data}
+            liveStatus={liveGames.status}
+            liveError={liveGames.error}
+            onRetryLive={liveGames.reload}
+            onOpenLive={(game) => setLiveNav(game)}
             isLeagueFavorite={favorites.isLeagueFavorite}
             isClubFavorite={favorites.isClubFavorite}
             isTeamFavorite={favorites.isTeamFavorite}
@@ -188,7 +197,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-faint">
         Daten: handball4all.de · inoffizielle Ansicht
-        <br />© 2026 rssoft2
+        <br />© 2026 rssoft2 · v1.4
       </footer>
     </div>
   )

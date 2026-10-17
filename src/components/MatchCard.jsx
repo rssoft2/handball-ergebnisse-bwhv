@@ -27,6 +27,11 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
         isFav ? 'border-favline bg-favbg' : 'border-line bg-surface'
       }`}
     >
+      {game.leagueName ? (
+        <div className="mb-1.5 truncate text-center text-[11px] font-medium text-muted">
+          {game.leagueName}
+        </div>
+      ) : null}
       <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted">
         <span className="font-medium">
           {game.weekday ? `${game.weekday}, ` : ''}

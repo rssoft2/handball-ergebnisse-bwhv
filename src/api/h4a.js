@@ -7,6 +7,7 @@ import {
   CLUB_FETCH_INTERVAL_MS,
   THROTTLE_RETRIES,
   THROTTLE_BACKOFF_MS,
+  LIVE_LIST_TTL_MS,
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 
@@ -436,6 +437,60 @@ export async function fetchBwhvLeagues(org, region) {
       return a.name.localeCompare(b.name, 'de')
     })
   })
+}
+
+// Alle derzeit laufenden Spiele aus einer `po`-Antwort (Wochenübersicht).
+function liveGamesOfPayload(payload) {
+  const games = []
+  for (const c of payload?.content?.classes ?? []) {
+    const live = (c.games ?? []).filter((g) => g.live)
+    if (!live.length) continue
+    const ageGroup = ageGroupOf(trim(c.gClassGender), c.gClassAGsDesc)
+    const section = sectionOf(ageGroup)
+    if (!section) continue
+    for (const raw of live) {
+      games.push({
+        ...normalizeGame(raw),
+        leagueId: String(c.gClassID),
+        leagueName: trim(c.gClassLname),
+        leagueLevel: trim(c.gClassLevelName),
+        leagueSection: section,
+        ageGroup,
+      })
+    }
+  }
+  return games
+}
+
+// Alle laufenden Spiele landesweit + Bereich – für den Live-Tab der Startseite.
+export async function fetchLiveGames(org, region, force = false) {
+  return getCached(
+    `live:${org}:${region}`,
+    async () => {
+      const params = [{ cmd: 'po', og: org }]
+      if (region) params.push({ cmd: 'po', og: org, o: region })
+      const payloads = await Promise.all(params.map((p) => getJson(p)))
+
+      const byId = new Map()
+      for (const payload of payloads) {
+        for (const game of liveGamesOfPayload(payload)) byId.set(game.id, game)
+      }
+
+      return [...byId.values()].sort((a, b) => {
+        const sectionDiff = sectionRank(a.leagueSection) - sectionRank(b.leagueSection)
+        if (sectionDiff !== 0) return sectionDiff
+        const ageDiff = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
+        if (ageDiff !== 0) return ageDiff
+        const levelDiff = levelRank(a.leagueLevel) - levelRank(b.leagueLevel)
+        if (levelDiff !== 0) return levelDiff
+        const nameDiff = a.leagueName.localeCompare(b.leagueName, 'de')
+        if (nameDiff !== 0) return nameDiff
+        return byDateAsc(a, b)
+      })
+    },
+    force,
+    LIVE_LIST_TTL_MS,
+  )
 }
 
 // Tabelle + Spiele einer Liga
