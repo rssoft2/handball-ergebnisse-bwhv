@@ -109,22 +109,36 @@ function normalizeActions(actions) {
     .filter((a) => a.message)
 }
 
-export async function fetchLiveSnapshot(token) {
-  if (!token) throw new Error('Für dieses Spiel ist kein Live-Ticker verfügbar.')
+// Steckbrief + Kader ändern sich während des Spiels nicht – einmal laden und
+// zwischenspeichern. So holt das Polling nur noch die Ticker-Nachrichten.
+const baseCache = new Map()
 
-  // Alle drei Aufrufe parallel; Steckbrief und Kader sind optional.
-  const [info, detail, actions] = await Promise.all([
+async function fetchLiveBase(token) {
+  const cached = baseCache.get(token)
+  if (cached) return cached
+  const [info, detail] = await Promise.all([
     tickerCall(token, 'getGameInfo'),
     tickerCall(token, 'getAllGameInfo').catch(() => null),
-    tickerCall(token, 'getAllTickerMessages').catch(() => []),
   ])
-
-  return {
+  const value = {
     info: normalizeInfo(info),
     teams: {
       home: normalizeTeam(detail?.team_home),
       away: normalizeTeam(detail?.team_guest),
     },
-    actions: normalizeActions(actions),
   }
+  baseCache.set(token, value)
+  return value
+}
+
+export async function fetchLiveSnapshot(token) {
+  if (!token) throw new Error('Für dieses Spiel ist kein Live-Ticker verfügbar.')
+
+  // Steckbrief/Kader (gecacht) + Nachrichten; letztere ändern sich laufend.
+  const [base, actions] = await Promise.all([
+    fetchLiveBase(token),
+    tickerCall(token, 'getAllTickerMessages').catch(() => []),
+  ])
+
+  return { ...base, actions: normalizeActions(actions) }
 }

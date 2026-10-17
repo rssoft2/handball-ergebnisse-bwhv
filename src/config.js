@@ -22,6 +22,10 @@ export const CLUB_FETCH_INTERVAL_MS = 600
 export const THROTTLE_RETRIES = 3
 export const THROTTLE_BACKOFF_MS = 1500
 
+// Kleine Pause zwischen aufeinanderfolgenden API-Aufrufen, damit keine
+// Anfrage-Bursts entstehen (die API drosselt sonst schnell).
+export const REQUEST_GAP_MS = 500
+
 // Live-Ticker: Live-Spiele der API tragen gToken/gAppid. Die Ticker-Daten
 // kommen CORS-freigegeben (access-control-allow-origin: *) von if_ticker_data.php.
 export const TICKER_DATA_BASE = 'https://spo.handball4all.de/service/if_ticker_data.php'
@@ -33,9 +37,10 @@ export const TICKER_PAGE_BASE = 'https://spo.handball4all.de/service/ticker.html
 export const LIVE_POLL_MS = 15000
 
 // Übersicht aller laufenden Spiele (Live-Tab der Startseite): kurz cachen und
-// aktualisieren, solange der Tab offen ist.
-export const LIVE_LIST_POLL_MS = 20000
-export const LIVE_LIST_TTL_MS = 15000
+// aktualisieren, solange der Tab sichtbar ist. Nicht zu häufig pollen – die
+// `po`-Übersicht ist schwer und die API drosselt schnell.
+export const LIVE_LIST_POLL_MS = 30000
+export const LIVE_LIST_TTL_MS = 20000
 
 // Basis-Link zu den öffentlichen Spielberichten (PDF). Die URL erlaubt kein
 // CORS, deshalb wird der Bericht im Browser über einen Textdienst geladen.

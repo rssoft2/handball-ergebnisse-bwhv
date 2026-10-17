@@ -7,6 +7,7 @@ import {
   CLUB_FETCH_INTERVAL_MS,
   THROTTLE_RETRIES,
   THROTTLE_BACKOFF_MS,
+  REQUEST_GAP_MS,
   LIVE_LIST_TTL_MS,
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
@@ -469,7 +470,13 @@ export async function fetchLiveGames(org, region, force = false) {
     async () => {
       const params = [{ cmd: 'po', og: org }]
       if (region) params.push({ cmd: 'po', og: org, o: region })
-      const payloads = await Promise.all(params.map((p) => getJson(p)))
+      // Nacheinander mit kleiner Pause statt parallel – die API drosselt
+      // gleichzeitige Aufrufe schnell.
+      const payloads = []
+      for (let i = 0; i < params.length; i += 1) {
+        if (i > 0) await sleep(REQUEST_GAP_MS)
+        payloads.push(await getJson(params[i]))
+      }
 
       const byId = new Map()
       for (const payload of payloads) {

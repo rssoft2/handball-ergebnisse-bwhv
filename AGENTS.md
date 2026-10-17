@@ -33,8 +33,8 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/api/live.js` — Live-Ticker: `if_ticker_data.php` abfragen + normalisieren
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
 - `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
-- `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren
-- `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 20 s aktualisieren (Live-Tab)
+- `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren (nur bei sichtbarem Tab)
+- `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 30 s aktualisieren (Live-Tab, nur bei sichtbarem Tab)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`) + form (`buildFormByTeam`)
 - `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, LiveScreen, ReportHeader/ReportStatsScreen/ReportTimelineScreen
@@ -135,7 +135,7 @@ kein `X-Frame-Options`). Der offizielle Ticker pollt selbst alle 15 s (max. 10×
 - **Live-Tab** (Startseite): listet alle laufenden Spiele landesweit + Bereich 246.
   `fetchLiveGames(org, region)` zieht die `po`-Übersichten beider Bereiche, sammelt Spiele mit
   `live === true` (inkl. Liga-Info), dedupliziert per `gID` und sortiert (Sektion → Alter → Level
-  → Liga → Zeit). `useLiveGames` lädt + aktualisiert alle 20 s (`LIVE_LIST_POLL_MS`, Cache-TTL
+  → Liga → Zeit). `useLiveGames` lädt + aktualisiert alle 30 s (`LIVE_LIST_POLL_MS`, Cache-TTL
   `LIVE_LIST_TTL_MS`), nur solange der Tab sichtbar ist. `LiveGamesView` zeigt Anzahl +
   `MatchCard` je Spiel (Karte zeigt den Liga-Namen); Tabs zeigen die Live-Anzahl als Badge.
   `head.live` der API ist **immer 0** – die Anzahl kommt aus `game.live`.
@@ -161,7 +161,10 @@ kein `X-Frame-Options`). Der offizielle Ticker pollt selbst alle 15 s (max. 10×
   **Rate-Limit**: die API drosselt sehr schnell (429/401 oder Body
   `{ "error": "Too many requests" }`). Deshalb wiederholt `getJson` gedrosselte Aufrufe
   automatisch mit Backoff (`THROTTLE_RETRIES`/`THROTTLE_BACKOFF_MS`); erst danach bricht die
-  Suche ab („drosselt gerade … bitte warten").
+  Suche ab („drosselt gerade … bitte warten"). Gegen Drosselung zusätzlich: Polling nur bei
+  sichtbarem Tab (Tab-Kontext), `fetchLiveGames` ruft die beiden `po`-Übersichten **nacheinander**
+  mit `REQUEST_GAP_MS`-Pause auf (kein Burst), und `fetchLiveSnapshot` cacht Steckbrief/Kader
+  (`baseCache`), sodass beim Polling nur noch `getAllTickerMessages` anfällt.
 - Zugangshürde: `KeyGate` verlangt `?k=<secret>` (sonst „Kein Zugang"), merkt sich die
   Freigabe unter `h4a:key`, `k` bleibt in der URL. Nur der SHA-256-Hash steht in
   `config.js` (`ACCESS_HASH`); Secret nur im Einladungslink, **nicht** im Repo. Reine
