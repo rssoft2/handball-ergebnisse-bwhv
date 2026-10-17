@@ -36,12 +36,11 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
         <span className="font-medium">
           {game.weekday ? `${game.weekday}, ` : ''}
           {formatDate(game.date)}
-          {game.time ? ` · ${formatTime(game.time)}` : ''}
+          {game.time && !game.live ? ` · ${formatTime(game.time)}` : ''}
         </span>
         {game.live ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-            LIVE
+          <span className="shrink-0 text-[11px] font-semibold text-muted">
+            Live seit {formatTime(game.time)}
           </span>
         ) : null}
       </div>
