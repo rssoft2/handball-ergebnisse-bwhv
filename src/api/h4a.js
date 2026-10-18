@@ -3,6 +3,7 @@ import {
   CACHE_TTL_MS,
   CLUB_SEARCH_TTL_MS,
   CLUB_TEAMS_TTL_MS,
+  CLUB_GAMES_TTL_MS,
   MAX_CLUBS_PER_SEARCH,
   CLUB_FETCH_INTERVAL_MS,
   THROTTLE_RETRIES,
@@ -11,6 +12,7 @@ import {
   LIVE_LIST_TTL_MS,
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
+import { isSubsequence, normalizeTeamName } from '../utils/teams.js'
 
 const CACHE_PREFIX = 'h4a:cache:v7'
 
@@ -267,26 +269,6 @@ function normalizeGame(game) {
 
 const byDateAsc = (a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0)
 const byDateDesc = (a, b) => (b.dateObj ?? 0) - (a.dateObj ?? 0)
-
-// Normalisiert Teamnamen für den Abgleich (Groß/Klein, Umlaute, Sonderzeichen egal).
-function normalizeTeamName(name) {
-  return trim(name)
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Z0-9]/g, '')
-}
-
-// Prüft, ob `short` als Teilsequenz in `full` steckt.
-function isSubsequence(short, full) {
-  if (!short) return false
-  let i = 0
-  for (const char of full) {
-    if (char === short[i]) i += 1
-    if (i === short.length) return true
-  }
-  return false
-}
 
 // Die API liefert in Spielen nur Kurznamen ("SG Hei/Hel/Gon"), in der Tabelle
 // aber Langnamen ("SG Heidelsheim/Helmsheim/Gondelsheim"). Der Kurzname ist
@@ -576,6 +558,63 @@ export async function fetchClubTeams(org, club) {
   const teams = [...byTeam.values()].sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
   writeCache(key, teams, CLUB_TEAMS_TTL_MS)
   return teams
+}
+
+// Spieltag-/Spielplan-Spiele eines Vereins: alle Mannschaften, alle Spiele aus
+// der `pcu`-Vereinsseite (je Liga die aktuellen Partien). Mit Liga-Infos, aufsteigend
+// nach Tag/Zeit. Kurz gecacht, weil sich Scores/Live ändern.
+export async function fetchClubSchedule(org, club, force = false) {
+  const clubId = String(club?.clubId ?? '').trim()
+  if (!clubId) return []
+  return getCached(
+    `clubgames:${org}:${clubId}`,
+    async () => {
+      const payload = await getJson({ cmd: 'pcu', og: org, c: clubId })
+      const classes = payload.content?.classes ?? []
+      const byId = new Map()
+      for (const cls of classes) {
+        const ageGroup = ageGroupOf(trim(cls.gClassGender), cls.gClassAGsDesc)
+        const section = sectionOf(ageGroup)
+        for (const raw of cls.games ?? []) {
+          const game = normalizeGame(raw)
+          byId.set(game.id, {
+            ...game,
+            leagueId: String(cls.gClassID),
+            leagueName: trim(cls.gClassLname || cls.gClassSname),
+            leagueLevel: trim(cls.gClassLevelName),
+            leagueSection: section,
+            ageGroup,
+          })
+        }
+      }
+      return [...byId.values()].sort(byDateAsc)
+    },
+    force,
+    CLUB_GAMES_TTL_MS,
+  )
+}
+
+// Spielpläne mehrerer Vereine (für den Spieltag-Tab) – nacheinander mit kleiner
+// Pause, damit die API nicht drosselt. `throttled` markiert unvollständige Ergebnisse.
+export async function fetchClubsSchedules(org, clubs) {
+  const list = Array.isArray(clubs) ? clubs : []
+  const result = []
+  let throttled = false
+  for (let i = 0; i < list.length; i += 1) {
+    if (i > 0) await sleep(REQUEST_GAP_MS)
+    const club = list[i]
+    try {
+      const games = await fetchClubSchedule(org, club)
+      result.push({ clubId: String(club.clubId), clubName: trim(club.clubName), games })
+    } catch (error) {
+      if (isThrottled(error)) {
+        throttled = true
+        break
+      }
+      result.push({ clubId: String(club.clubId), clubName: trim(club.clubName), games: [] })
+    }
+  }
+  return { clubs: result, throttled }
 }
 
 // Sucht Vereine zum Begriff und sammelt deren Mannschaften. `onClubs` wird noch

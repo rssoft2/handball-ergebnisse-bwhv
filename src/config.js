@@ -11,6 +11,8 @@ export const CACHE_TTL_MS = 5 * 60 * 1000
 // Team-Suche: Vereins-Suche und Vereinsseiten ändern sich selten.
 export const CLUB_SEARCH_TTL_MS = 10 * 60 * 1000
 export const CLUB_TEAMS_TTL_MS = 24 * 60 * 60 * 1000
+// Spielplan eines Vereins (Spieltag): Scores/Live ändern sich -> kurz cachen.
+export const CLUB_GAMES_TTL_MS = 5 * 60 * 1000
 
 // Pro Suche: höchstens so viele Vereine auflösen; Pause zwischen den Aufrufen,
 // um die Drosselung der API (429) zu vermeiden.

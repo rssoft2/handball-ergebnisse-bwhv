@@ -35,9 +35,12 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
 - `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren (nur bei sichtbarem Tab)
 - `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 30 s aktualisieren (Live-Tab, nur bei sichtbarem Tab)
-- `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
-- `src/utils/teams.js` — favorite matching (`isFavoriteTeam`) + form (`buildFormByTeam`)
-- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, LiveScreen, ReportHeader/ReportStatsScreen/ReportTimelineScreen
+- `src/hooks/useClubSchedule.js` — Spieltag-Spiele eines Vereins (`fetchClubSchedule`)
+- `src/hooks/useSpieltag.js` — Spielpläne aller Favoriten-Vereine (Spieltag-Tab, kein Polling)
+- `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, `weekendRange`/`weekendOf`, …)
+- `src/utils/spieltag.js` — Wochenend-Auswahl + Gruppierung (`pickWeekend`, `groupByDay`, `dayLabel`, `weekendLabel`)
+- `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
+- `src/components/` — Header, LeagueList, LeagueDetail, ClubScreen, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpieltagView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -51,7 +54,7 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 - `cmd=po&og=<org>&o=<region>` → regional leagues
 - `cmd=ps&og=<org>&cl=<league>&ca=1` → standings (`content.score`) + games (`content.futureGames.games`)
 - `cmd=cs&og=<org>&cs=<text>` → club search (`searchResult.list`, `{id,lname}`, max 50)
-- `cmd=pcu&og=<org>&c=<clubId>` → club page (`content.classes[].games`, grouped by league)
+- `cmd=pcu&og=<org>&c=<clubId>` → club page (`content.classes[].games`, grouped by league; je Liga die Partien des **aktuellen Spieltags**)
 
 `fetchBwhvLeagues` merges statewide + region 246, drops leagues without a section
 (`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
@@ -96,7 +99,7 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
 
 ## Current state / decisions
 
-- Screens: **LeagueList** (Tabs **Auswahl** / **Live** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
+- Screens: **LeagueList** (Tabs **Auswahl** / **Live** / **Spieltag** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
   gruppiert nach Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden /
   Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
   Tabelle, Kommende Spiele). Letzte Spiele **absteigend** (neueste oben), initial nur die
@@ -110,8 +113,12 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   → lädt `fetchClubTeams` lazy) / Mannschaften. Eine Mannschaft ist über **Name + Liga**
   identifiziert (derselbe Name, z. B. „HSG Ettlingen", kommt in vielen Ligen vor –
   ohne die Liga würden alle diese Zeilen einen Stern bekommen). Hervorhebung in Tabelle/Spielen über
-  `favoriteTeamNames` (Teamnamen **und** Vereinsnamen, weiterhin Teilstring-Match via
-  `isFavoriteTeam`). Kein Standard-Favorit (leerer Start), kein Export.
+  `favoriteTeamNames` (Teamnamen **und** Vereinsnamen). `isFavoriteTeam` (`utils/teams.js`) matcht erst
+  per Teilstring, sonst per normalisiertem Teilsequenz-Abgleich in beide Richtungen (Kurzname im Spiel
+  vs. Langname im Favoriten, z. B. „SG PF/Eutingen" ↔ „SG Pforzheim/Eutingen"); Team-Nummern
+  („… 2") werden getrennt verglichen, ein Vereinsfavorit **ohne** Nummer deckt alle Mannschaften ab.
+  `normalizeTeamName`/`isSubsequence` liegen dort und werden auch von `api/h4a.js` (Vereins-/
+  Mannschaftszuordnung) genutzt. Kein Standard-Favorit (leerer Start), kein Export.
 - Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.
 - **Spielberichte** (Statistik + Verlauf als eigene Screens): Die PDF-URL
   (`REPORT_BASE`, `sGID`) setzt **kein CORS** → im Browser nicht direkt ladbar. Der Text kommt
@@ -163,6 +170,19 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   gemeinsame Komponente `PlayerStats.jsx` (`TeamStats`, inkl. `isMilestonePlayer`; auch von
   `ReportStatsScreen` genutzt), Spieler aus `teams.home/away.players`. `normalizeTeam` filtert
   Offizielle (Buchstaben als `player_no`) heraus und sortiert nach Nummer.
+- **Spieltagsübersicht** (Wochenend-Spiele eines Vereins): `fetchClubSchedule(org, club)`
+  nutzt `cmd=pcu&c=<clubId>` – die Vereinsseite liefert je Liga genau die Partien des aktuellen
+  Spieltags (Feldaufbau wie `po`, daher `normalizeGame` + Liga-Info/`ageGroup`). Kurz gecacht
+  (`clubgames:${org}:${clubId}`, `CLUB_GAMES_TTL_MS` 5 min), aufsteigend nach `dateObj`.
+  `fetchClubsSchedules(org, clubs)` lädt mehrere Vereine **nacheinander** (`REQUEST_GAP_MS`) und
+  liefert `{clubs, throttled}`. `src/utils/spieltag.js`: `pickWeekend` wählt Sa+So des aktuellen
+  Wochenendes, sonst das Wochenende des nächsten anstehenden Spiels (`weekendRange`/`weekendOf`
+  in `format.js`); `groupByDay` gruppiert nach Tag, `dayLabel`/`weekendLabel` formatieren.
+  Zwei Einstiege: (1) Tipp auf einen Verein (Favoriten-Kalender-Button bzw. Suchtreffer „Vereine")
+  → `ClubScreen` (App-State `clubNav`); (2) Startseiten-Tab **Spieltag** → `SpieltagView` mit allen
+  Favoriten-Vereinen (je Verein Überschrift antippbar → `ClubScreen`, darunter Spiele nach Tag).
+  Header im `ClubScreen`: Vereinstitel + Stern zum Favorisieren. **Keine** Favoriten-Hervorhebung
+  der Spiele in den Spieltag-Ansichten (bewusst). Kein Polling (nur manuell).
 - Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
   mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
   `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein

@@ -4,6 +4,7 @@ import { ORG } from '../config.js'
 import FavoriteStar from './FavoriteStar.jsx'
 import FavoritesView from './FavoritesView.jsx'
 import LiveGamesView from './LiveGamesView.jsx'
+import SpieltagView from './SpieltagView.jsx'
 import StateMessage from './StateMessage.jsx'
 
 function ChevronRight() {
@@ -50,12 +51,19 @@ function LeagueRow({ league, onSelect, starred, onToggleStar }) {
   )
 }
 
-function ClubRow({ club, starred, onToggleStar }) {
+function ClubRow({ club, onSelect, starred, onToggleStar }) {
   return (
     <div className="flex items-center gap-1 rounded-lg px-1 transition hover:bg-surface2">
-      <div className="min-w-0 flex-1 truncate px-2 py-2.5 text-sm font-medium text-ink">
-        {club.clubName}
-      </div>
+      <button
+        type="button"
+        onClick={() => onSelect?.(club)}
+        className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2.5 text-left active:scale-[0.99]"
+      >
+        <div className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+          {club.clubName}
+        </div>
+        <ChevronRight />
+      </button>
       <FavoriteStar active={starred} label={club.clubName} onToggle={() => onToggleStar(club)} />
     </div>
   )
@@ -104,16 +112,17 @@ function Tabs({ tab, onChange, liveCount }) {
   const items = [
     { id: 'browse', label: 'Auswahl' },
     { id: 'live', label: 'Live', count: liveCount },
+    { id: 'spieltag', label: 'Spieltag' },
     { id: 'favorites', label: 'Favoriten' },
   ]
   return (
-    <div className="grid grid-cols-3 gap-1 rounded-xl border border-line bg-surface p-1">
+    <div className="grid grid-cols-4 gap-1 rounded-xl border border-line bg-surface p-1">
       {items.map((item) => (
         <button
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
-          className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-semibold transition ${
+          className={`flex items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[13px] font-semibold transition ${
             tab === item.id
               ? 'bg-accentsoft text-accent'
               : 'text-muted hover:bg-surface2 hover:text-ink'
@@ -153,6 +162,13 @@ export default function LeagueList({
   liveError,
   onRetryLive,
   onOpenLive,
+  spieltagClubs,
+  spieltagStatus,
+  spieltagData,
+  spieltagError,
+  onRetrySpieltag,
+  onOpenClub,
+  onOpenReport,
   isLeagueFavorite,
   isClubFavorite,
   isTeamFavorite,
@@ -239,6 +255,7 @@ export default function LeagueList({
           onToggleLeague={toggleLeague}
           onToggleClub={toggleClub}
           onToggleTeam={toggleTeam}
+          onOpenClub={onOpenClub}
         />
       ) : tab === 'live' ? (
         <LiveGamesView
@@ -247,6 +264,17 @@ export default function LeagueList({
           error={liveError}
           onRetry={onRetryLive}
           favoriteTeams={favoriteTeams}
+          onOpenLive={onOpenLive}
+        />
+      ) : tab === 'spieltag' ? (
+        <SpieltagView
+          clubs={spieltagClubs}
+          status={spieltagStatus}
+          data={spieltagData}
+          error={spieltagError}
+          onRetry={onRetrySpieltag}
+          onOpenClub={onOpenClub}
+          onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
         />
       ) : (
@@ -335,6 +363,7 @@ export default function LeagueList({
                       <ClubRow
                         key={club.clubId}
                         club={club}
+                        onSelect={onOpenClub}
                         starred={isClubFavorite(club.clubName)}
                         onToggleStar={toggleClub}
                       />
