@@ -138,8 +138,8 @@ export default function LiveScreen({ game, favoriteTeams }) {
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted">
           <span className="font-medium">{info.league || 'Live-Ticker'}</span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-liveink">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-liveink" />
             LIVE
           </span>
         </div>

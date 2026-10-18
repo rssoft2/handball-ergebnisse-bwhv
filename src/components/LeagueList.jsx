@@ -131,13 +131,13 @@ function Tabs({ tab, onChange, liveCount }) {
           {item.id === 'live' ? (
             <span
               className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                item.count ? 'bg-red-600' : 'bg-faint'
+                item.count ? 'bg-live' : 'bg-faint'
               }`}
             />
           ) : null}
           {item.label}
           {item.id === 'live' && item.count ? (
-            <span className="rounded-full bg-red-600 px-1.5 text-[10px] font-bold tabular-nums text-white">
+            <span className="rounded-full bg-live px-1.5 text-[10px] font-bold tabular-nums text-liveink">
               {item.count}
             </span>
           ) : null}

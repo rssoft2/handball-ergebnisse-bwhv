@@ -73,7 +73,7 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
           <button
             type="button"
             onClick={() => onOpenLive?.(game)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white transition hover:bg-red-700 active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-live px-3 py-1 text-xs font-bold text-liveink transition hover:bg-livestrong active:scale-95"
           >
             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
               <path d="M8 5v14l11-7z" />

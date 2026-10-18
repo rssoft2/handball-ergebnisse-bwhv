@@ -48,8 +48,8 @@ export default function Header({
               {meta?.name || 'Handball Ergebnisse'}
             </h1>
             {meta?.live ? (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[11px] font-bold text-liveink">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-liveink" />
                 LIVE
               </span>
             ) : null}
