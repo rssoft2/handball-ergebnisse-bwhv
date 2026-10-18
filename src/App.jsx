@@ -7,6 +7,7 @@ import { useReports } from './hooks/useReports.js'
 import { useLiveGames } from './hooks/useLiveGames.js'
 import { useClubSchedule } from './hooks/useClubSchedule.js'
 import { useSpieltag } from './hooks/useSpieltag.js'
+import { useLeagueScorers } from './hooks/useLeagueScorers.js'
 import { startOfDaysAgo } from './utils/format.js'
 import Header from './components/Header.jsx'
 import LeagueList from './components/LeagueList.jsx'
@@ -15,6 +16,7 @@ import ClubScreen from './components/ClubScreen.jsx'
 import ReportStatsScreen from './components/ReportStatsScreen.jsx'
 import ReportTimelineScreen from './components/ReportTimelineScreen.jsx'
 import LiveScreen from './components/LiveScreen.jsx'
+import LeagueScorersScreen from './components/LeagueScorersScreen.jsx'
 
 function readLeagueFromUrl() {
   return new URLSearchParams(window.location.search).get('cl') || ''
@@ -33,6 +35,7 @@ export default function App() {
   const [reportNav, setReportNav] = useState(null)
   const [liveNav, setLiveNav] = useState(null)
   const [clubNav, setClubNav] = useState(null)
+  const [statsNav, setStatsNav] = useState(false)
   const favorites = useFavorites()
 
   useEffect(() => {
@@ -56,12 +59,13 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
-  }, [selected, reportNav, liveNav, clubNav])
+  }, [selected, reportNav, liveNav, clubNav, statsNav])
 
   useEffect(() => {
     setReportNav(null)
     setLiveNav(null)
     setClubNav(null)
+    setStatsNav(false)
   }, [selected])
 
   const leagues = useAsync(() => fetchBwhvLeagues(ORG, REGION), [ORG, REGION])
@@ -81,6 +85,9 @@ export default function App() {
     favorites.favorites.clubs,
     tab === 'spieltag' && !selected && !clubNav && !reportNav && !liveNav,
   )
+
+  // Liga-Statistik (Torschützenliste): alle Berichte der gewählten Liga laden.
+  const scorers = useLeagueScorers(ORG, selected, Boolean(selected) && statsNav)
 
   // Die zuletzt gespielten Partien (wie im Liga-Detail sichtbar) im Hintergrund
   // als Berichte vorladen.
@@ -103,6 +110,7 @@ export default function App() {
   const inReport = Boolean(reportNav)
   const inLive = Boolean(liveNav)
   const inClub = Boolean(clubNav)
+  const inScorers = Boolean(selected) && statsNav
   const data = detail.data
 
   const currentLeague = selected
@@ -137,12 +145,17 @@ export default function App() {
                     name: clubNav.clubName,
                     subtitle: 'Spieltag',
                   }
-                : showingDetail
-                  ? data?.meta
-                  : {
-                      name: 'Handball-Ergebnisse',
-                      subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
+                : inScorers
+                  ? {
+                      name: data?.meta?.name || 'Torschützenliste',
+                      subtitle: 'Torschützen',
                     }
+                  : showingDetail
+                    ? data?.meta
+                    : {
+                        name: 'Handball-Ergebnisse',
+                        subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
+                      }
         }
         onBack={
           inLive
@@ -151,20 +164,28 @@ export default function App() {
               ? () => setReportNav(null)
               : inClub
                 ? () => setClubNav(null)
-                : showingDetail
-                  ? () => setSelected('')
-                  : undefined
+                : inScorers
+                  ? () => setStatsNav(false)
+                  : showingDetail
+                    ? () => setSelected('')
+                    : undefined
         }
         onRefresh={
           inLive || inReport
             ? undefined
             : inClub
               ? clubSchedule.reload
-              : showingDetail
-                ? detail.reload
-                : undefined
+              : inScorers
+                ? scorers.reload
+                : showingDetail
+                  ? detail.reload
+                  : undefined
         }
-        loading={detail.status === 'loading' || (inClub && clubSchedule.status === 'loading')}
+        loading={
+          detail.status === 'loading' ||
+          (inClub && clubSchedule.status === 'loading') ||
+          (inScorers && scorers.status === 'loading')
+        }
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
         starred={
@@ -207,6 +228,15 @@ export default function App() {
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}
           />
+        ) : inScorers ? (
+          <LeagueScorersScreen
+            status={scorers.status}
+            data={scorers.data}
+            progress={scorers.progress}
+            error={scorers.error}
+            onReload={scorers.reload}
+            favoriteTeams={favorites.favoriteTeams}
+          />
         ) : showingDetail ? (
           <LeagueDetail
             data={data}
@@ -216,6 +246,7 @@ export default function App() {
             favoriteTeams={favorites.favoriteTeams}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}
+            onOpenScorers={() => setStatsNav(true)}
           />
         ) : (
           <LeagueList
@@ -252,7 +283,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-faint">
         Daten: handball4all.de · inoffizielle Ansicht
-        <br />© 2026 rssoft2 · v1.8
+        <br />© 2026 rssoft2 · v1.9
       </footer>
     </div>
   )

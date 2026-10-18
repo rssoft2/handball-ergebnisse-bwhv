@@ -27,9 +27,10 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 
 ## Structure
 
-- `src/config.js` — `API_BASE`, `ORG`, `REGION`, cache TTLs, `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
+- `src/config.js` — `API_BASE`, `ORG`, `REGION`, cache TTLs (+ `LEAGUE_STATS_*`), `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
 - `src/api/h4a.js` — all HTTP + normalization + cache + age/section grouping
 - `src/api/reports.js` — Spielberichte: Text über Jina holen + parsen (Meta, Spielerstatistik, Spielverlauf)
+- `src/api/leagueStats.js` — Liga-Statistik: alle Berichte einer Liga laden + Torschützenliste aggregieren (`fetchLeagueScorers`, `aggregateScorers`)
 - `src/api/live.js` — Live-Ticker: `if_ticker_data.php` abfragen + normalisieren
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
 - `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
@@ -37,10 +38,11 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 30 s aktualisieren (Live-Tab, nur bei sichtbarem Tab)
 - `src/hooks/useClubSchedule.js` — Spieltag-Spiele eines Vereins (`fetchClubSchedule`)
 - `src/hooks/useSpieltag.js` — Spielpläne aller Favoriten-Vereine (Spieltag-Tab, kein Polling)
+- `src/hooks/useLeagueScorers.js` — Torschützenliste einer Liga (alle Berichte; nur bei sichtbarem Screen)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, `weekendRange`/`weekendOf`, …)
 - `src/utils/spieltag.js` — Wochenend-Auswahl + Gruppierung (`pickWeekend`, `groupByDay`, `dayLabel`, `weekendLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
-- `src/components/` — Header, LeagueList, LeagueDetail, ClubScreen, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpieltagView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen
+- `src/components/` — Header, LeagueList, LeagueDetail, ClubScreen, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpieltagView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -126,7 +128,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   **`X-Return-Format: text`** – dadurch hat jede PDF-Zeile eine eigene Textzeile (im Default-
   Markdown sind die Spalten verschoben). `api/reports.js`:
   - Meta aus „Übersicht Spieldaten" (Spielklasse, Nr., Datum/Zeit, Ort, Heim–Gast, Endstand, Sieger).
-  - **Mannschaftsliste** → Spieler je Team (Nr., Name, Tore, `7m/ Tore` wie `2/1`). Nur Zeilen mit
+  - **Mannschaftsliste** → Spieler je Team (Nr., Name, Tore, `7m/ Tore` wie `2/1` =
+    **Versuche/verwandelte**, zweite Zahl). Nur Zeilen mit
     **Zahl in der Nr.-Spalte** sind Spieler, Buchstaben (A–E) sind Trainer/Betreuer (werden übersprungen).
   - **Spielverlauf** (`hh:mm:ss  mm:ss  [Stand]  Aktion`) → Events: `Tor durch` / `7m-Tor durch` /
     `7m, KEIN Tor durch`; `Auszeit …`; Karten `Verwarnung für` (gelb), `2-min Strafe für` (»2«-Karte),
@@ -142,6 +145,22 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor (Cache `h4a:report:v4`), `ensure(sGID)`
   lädt on demand. Buttons **Statistik**/**Verlauf** (+ PDF) an `MatchCard`; Screens via `App`-State
   `reportNav`, Header-Zurück zur Liga.
+- **Liga-Statistik / Torschützenliste**: `api/leagueStats.js` →
+  `fetchLeagueScorers(org, league, {onProgress, force})` zieht `fetchLeague` (gecacht) und lädt
+  für alle `played`-Spiele mit `reportId` die Berichte **sequenziell** über `getReport` (gecachte
+  überspringen, `LEAGUE_STATS_GAP_MS` Pause). `aggregateScorers` summiert je Spieler Tore,
+  7m-Treffer, Spiele und Karten; nur Spieler mit `goals>0`, sortiert Tore↓ / Feld↓ / Name. Spieler
+  werden je Team **nur nach Name** zusammengefasst (Rückennummern wechseln zwischen Spielen),
+  angezeigt wird die häufigste Nummer. 7m-Treffer aus der Spalte „7m/ Tore" =
+  **Versuche/verwandelte** → zweite Zahl.
+  Nur **vollständige** Durchläufe (keine fehlgeschlagenen
+  Berichte) werden gecacht: `h4a:leaguestats:v2:${org}:${league}` mit Signatur = sGID-Liste,
+  TTL `LEAGUE_STATS_TTL_MS`. Berichte sind unveränderlich → `REPORT_TTL_MS` jetzt **1 Jahr**.
+  Screen `LeagueScorersScreen` (App-State `statsNav`, erreichbar über Button „Torschützenliste"
+  in `LeagueDetail`) zeigt Fortschrittsbalken + Tabelle (Rang/Nr./Spieler/Team/Sp/Tore/Feld/7m,
+  sortiert nach Toren; Feld = Tore − 7m),
+  Favoriten-Team hervorgehoben, Hinweis „Basis x/y Spiele" falls Berichte fehlen. `useLeagueScorers`
+  lädt nur bei sichtbarem Screen und verwirft laufende Ergebnisse beim Verlassen (kein Polling).
 - **Live-Tab** (Startseite): listet alle laufenden Spiele landesweit + Bereich 246.
   `fetchLiveGames(org, region)` zieht die `po`-Übersichten beider Bereiche, sammelt Spiele mit
   `live === true` (inkl. Liga-Info), dedupliziert per `gID` und sortiert (Sektion → Alter → Level

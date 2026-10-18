@@ -25,6 +25,7 @@ export default function LeagueDetail({
   favoriteTeams,
   onOpenReport,
   onOpenLive,
+  onOpenScorers,
 }) {
   if (status === 'loading' && !data) {
     return <StateMessage status="loading" />
@@ -43,6 +44,17 @@ export default function LeagueDetail({
 
   return (
     <div className="space-y-8">
+      {onOpenScorers ? (
+        <button
+          type="button"
+          onClick={onOpenScorers}
+          className="flex w-full items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 text-left shadow-sm transition hover:bg-surface2 active:scale-[0.99]"
+        >
+          <span className="font-head text-sm font-semibold text-ink">Torschützenliste</span>
+          <span className="text-xs text-muted">Liga-Statistik ›</span>
+        </button>
+      ) : null}
+
       <Section
         title="Letzte Spiele"
         subtitle={data.live.length > 0 ? `${data.live.length} live` : undefined}

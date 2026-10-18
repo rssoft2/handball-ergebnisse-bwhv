@@ -24,9 +24,10 @@
   --live-strong: #b91c1c;
   --live-ink: #ffffff;
 
-  --fav-bg: #fde68a;
-  --fav-line: #f59e0b;
-  --fav-ink: #78350f;
+  /* Favoriten-Hervorhebung – bewusst in beiden Themes gleich (gold/amber) */
+  --fav-bg: rgba(245, 158, 11, 0.2);
+  --fav-line: rgba(245, 158, 11, 0.5);
+  --fav-ink: #fcd34d;
 }
 
 :root[data-theme="dark"] {

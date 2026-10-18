@@ -55,7 +55,13 @@ export const REPORT_BASE = 'https://spo.handball4all.de/misc/sboPublicReports.ph
 export const REPORT_PROXY_BASE = 'https://r.jina.ai/'
 
 // Berichte sind nach Spielende unveränderlich -> lange zwischenspeichern.
-export const REPORT_TTL_MS = 30 * 24 * 60 * 60 * 1000
+export const REPORT_TTL_MS = 365 * 24 * 60 * 60 * 1000
+
+// Liga-Statistik (Torschützenliste): aggregiert alle Berichte einer Liga.
+// Ergebnis wird signaturbasiert (Anzahl beendeter Spiele) zwischengespeichert.
+export const LEAGUE_STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000
+// Zusätzliche Pause zwischen den Berichtsaufrufen (der Textdienst drosselt).
+export const LEAGUE_STATS_GAP_MS = 400
 
 // Einfache Zugangshürde: Zugang nur mit ?k=<secret>. Es liegt nur der
 // SHA-256-Hash im Code, das Secret selbst wird nicht ausgeliefert.

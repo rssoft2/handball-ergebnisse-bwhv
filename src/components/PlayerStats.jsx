@@ -1,5 +1,12 @@
 import { CardsCell } from './ReportCards.jsx'
 
+// Die Berichtsspalte „7m/ Tore" liefert "Versuche/verwandelte" (z. B. "6/5");
+// angezeigt werden hier die verwandelten 7m-Tore. Live liefert bereits eine Zahl.
+function sevenValue(seven) {
+  const m = String(seven ?? '').match(/^(\d+)\s*\/\s*(\d+)$/)
+  return m ? Number(m[2]) : seven || ''
+}
+
 function isMilestonePlayer(team, player, milestone) {
   if (!milestone) return false
   if (milestone.side === true && team.side !== 'home') return false
@@ -55,7 +62,7 @@ export function TeamStats({ team, milestone, favorite }) {
                 <td className="py-1 text-right font-semibold tabular-nums text-ink">
                   {p.goals || ''}
                 </td>
-                <td className="py-1 text-right tabular-nums text-muted">{p.seven || ''}</td>
+                <td className="py-1 text-right tabular-nums text-muted">{sevenValue(p.seven)}</td>
                 <td className="py-1 text-right">
                   <CardsCell cards={p.cards} />
                 </td>
