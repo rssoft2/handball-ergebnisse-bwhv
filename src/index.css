@@ -2,62 +2,65 @@
 
 /* Semantische Farb-Tokens. Standard ist das System-Theme; über
    data-theme="light|dark" am <html> kann manuell überschrieben werden.
-   Komponenten nutzen nur bg-surface, text-ink usw. */
+   Komponenten nutzen nur bg-surface, text-ink usw.
+   Schema: Light = Tief (dunkleres Schiefergrau), Dark = Sanft (dunkles Navy).
+   Akzent = Petrol. */
 :root {
   color-scheme: light;
 
-  --bg: #f1f5f9;
-  --surface: #ffffff;
-  --surface-2: #f8fafc;
-  --line: #e2e8f0;
-  --ink: #0f172a;
-  --muted: #475569;
-  --faint: #94a3b8;
-  --accent: #0e7490;
+  --bg: #d5dde8;
+  --surface: #f3f7fb;
+  --surface-2: #e4eaf2;
+  --line: #bac6d6;
+  --ink: #080f1c;
+  --muted: #2b3648;
+  --faint: #586a80;
+  --accent: #155e75;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(14, 116, 144, 0.1);
+  --accent-soft: rgba(21, 94, 117, 0.12);
 
-  --fav-bg: #fef3c7;
-  --fav-line: #fcd34d;
+  --fav-bg: #fde68a;
+  --fav-line: #f59e0b;
   --fav-ink: #78350f;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #0a1326;
-  --surface: #0f1c33;
-  --surface-2: rgba(255, 255, 255, 0.03);
-  --line: rgba(255, 255, 255, 0.08);
-  --ink: #eaf1fb;
-  --muted: rgba(255, 255, 255, 0.62);
-  --faint: rgba(255, 255, 255, 0.4);
-  --accent: oklch(0.82 0.13 205);
+  --bg: #0d1729;
+  --surface: #14203a;
+  --surface-2: rgba(255, 255, 255, 0.04);
+  --line: rgba(255, 255, 255, 0.1);
+  --ink: #e6eefa;
+  --muted: rgba(255, 255, 255, 0.66);
+  --faint: rgba(255, 255, 255, 0.44);
+  --accent: oklch(0.86 0.12 205);
   --accent-ink: #04101f;
-  --accent-soft: color-mix(in oklab, var(--accent) 16%, transparent);
+  --accent-soft: color-mix(in oklab, var(--accent) 18%, transparent);
 
-  --fav-bg: rgba(245, 158, 11, 0.16);
-  --fav-line: rgba(245, 158, 11, 0.45);
+  --fav-bg: rgba(245, 158, 11, 0.2);
+  --fav-line: rgba(245, 158, 11, 0.5);
   --fav-ink: #fcd34d;
 }
 
+/* Dark per Systemeinstellung */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     color-scheme: dark;
 
-    --bg: #0a1326;
-    --surface: #0f1c33;
-    --surface-2: rgba(255, 255, 255, 0.03);
-    --line: rgba(255, 255, 255, 0.08);
-    --ink: #eaf1fb;
-    --muted: rgba(255, 255, 255, 0.62);
-    --faint: rgba(255, 255, 255, 0.4);
-    --accent: oklch(0.82 0.13 205);
+    --bg: #0d1729;
+    --surface: #14203a;
+    --surface-2: rgba(255, 255, 255, 0.04);
+    --line: rgba(255, 255, 255, 0.1);
+    --ink: #e6eefa;
+    --muted: rgba(255, 255, 255, 0.66);
+    --faint: rgba(255, 255, 255, 0.44);
+    --accent: oklch(0.86 0.12 205);
     --accent-ink: #04101f;
-    --accent-soft: color-mix(in oklab, var(--accent) 16%, transparent);
+    --accent-soft: color-mix(in oklab, var(--accent) 18%, transparent);
 
-    --fav-bg: rgba(245, 158, 11, 0.16);
-    --fav-line: rgba(245, 158, 11, 0.45);
+    --fav-bg: rgba(245, 158, 11, 0.2);
+    --fav-line: rgba(245, 158, 11, 0.5);
     --fav-ink: #fcd34d;
   }
 }
