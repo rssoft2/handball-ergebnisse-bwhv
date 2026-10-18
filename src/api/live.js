@@ -9,7 +9,8 @@ export function officialTickerUrl(token, appid) {
   const params = new URLSearchParams()
   if (token) params.set('token', token)
   if (appid) params.set('appid', appid)
-  return `${TICKER_PAGE_BASE}?${params.toString()}`
+  const query = params.toString()
+  return query ? `${TICKER_PAGE_BASE}?${query}` : TICKER_PAGE_BASE
 }
 
 async function tickerCall(token, cmd) {
@@ -56,10 +57,15 @@ function normalizeInfo(info) {
 function normalizeTeam(team) {
   const members = team?.team_members
   const players = Array.isArray(members)
-    ? members.map((m) => ({
-        nr: String(m.player_no ?? '').trim(),
-        name: [m.prename, m.name].filter(Boolean).join(' ').trim(),
-      }))
+    ? members
+        .map((m) => ({
+          nr: String(m.player_no ?? '').trim(),
+          name: [m.prename, m.name].filter(Boolean).join(' ').trim(),
+        }))
+        // Nur echte Spieler (numerische Rückennummer); Buchstaben sind
+        // Offizielle/Betreuer. Nach Nummer sortieren.
+        .filter((p) => /^\d+$/.test(p.nr))
+        .sort((a, b) => Number(a.nr) - Number(b.nr))
     : []
   return { club: (team?.club || '').trim(), players }
 }
@@ -82,15 +88,41 @@ export function classifyMessage(message) {
   return 'info'
 }
 
-// Ticker-Texte für die Anzeige vereinfachen: Teams nur als "Heim"/"Gast"
-// (Nummer/Spieler bleiben unberührt) und "Erfolgreicher 7m-Wurf" -> "7m Tor".
-export function simplifyMessage(message) {
-  return String(message || '')
-    .replace(/^Erfolgreicher 7m-Wurf/, '7m Tor')
-    .replace(/Mannschafts-Auszeit der (Heim|Gast)mannschaft/g, 'Auszeit für $1')
-    .replace(/ für die (Heim|Gast)mannschaft/g, ' für $1')
-    .replace(/ der (Heim|Gast)mannschaft/g, ' für $1')
-    .replace(/(Heim|Gast)mannschaft/g, '$1')
+// Ticker-Texte vereinheitlichen. Der Ticker liefert fertige deutsche Sätze mit
+// "Heimmannschaft"/"Gastmannschaft" und (bei Spielern) "der Nummer X"; angezeigt
+// wird ein einheitliches "<Aktion> für Heim/Gast durch die Nummer X <Name>".
+const ACTION_LABEL = {
+  goal: 'Tor',
+  seven: '7m Tor',
+  missed: '7m-Wurf',
+  yellow: 'Verwarnung',
+  two: '2-min Strafe',
+  red: 'Disqualifikation',
+  blue: 'Disqualifikation mit Bericht',
+  timeout: 'Auszeit',
+}
+
+const CARD_KINDS = new Set(['yellow', 'two', 'red', 'blue'])
+const MILESTONE_RANK = 40
+
+function actionSide(message) {
+  if (/Heimmannschaft/.test(message)) return 'home'
+  if (/Gastmannschaft/.test(message)) return 'away'
+  return null
+}
+
+function formatMessage(action, sideLabel, name) {
+  const label = ACTION_LABEL[action.kind]
+  if (!label) return action.raw
+  if (action.kind === 'timeout') return sideLabel ? `Auszeit für ${sideLabel}` : 'Auszeit'
+  if (action.kind === 'missed') {
+    return sideLabel ? `${label} für ${sideLabel}: Kein Treffer` : label
+  }
+  if (action.nr) {
+    const sidePart = sideLabel ? ` für ${sideLabel}` : ''
+    return `${label}${sidePart} durch die Nummer ${action.nr}${name ? ` ${name}` : ''}`
+  }
+  return action.raw
 }
 
 function normalizeActions(actions) {
@@ -98,15 +130,68 @@ function normalizeActions(actions) {
   return actions
     .map((a) => {
       const raw = String(a.message ?? '').trim()
+      const nrMatch = raw.match(/Nummer\s+(\d+)/)
       return {
         time: Number(a.game_time),
-        message: simplifyMessage(raw),
+        raw,
+        kind: classifyMessage(raw),
+        side: actionSide(raw),
+        nr: nrMatch ? nrMatch[1] : '',
         homeScore: Number.isFinite(Number(a.home_score)) ? Number(a.home_score) : null,
         guestScore: Number.isFinite(Number(a.guest_score)) ? Number(a.guest_score) : null,
-        kind: classifyMessage(raw),
       }
     })
-    .filter((a) => a.message)
+    .filter((a) => a.raw)
+}
+
+function playerLookup(team) {
+  const map = new Map()
+  for (const p of team?.players ?? []) map.set(String(Number(p.nr)), p)
+  return map
+}
+
+// Nachrichten um Spielernamen ergänzen und dabei die Statistik je Spieler
+// aufbauen (Tore, 7m, Karten) sowie das 40. Tor einer Mannschaft markieren.
+function buildActions(baseTeams, actions) {
+  const enriched = {}
+  const lookup = {}
+  for (const side of ['home', 'away']) {
+    const players = (baseTeams[side]?.players ?? []).map((p) => ({
+      ...p,
+      goals: 0,
+      seven: 0,
+      cards: [],
+    }))
+    enriched[side] = { ...baseTeams[side], goals: 0, players }
+    lookup[side] = playerLookup({ players })
+  }
+
+  const counts = { home: 0, away: 0 }
+  let milestone = null
+
+  const list = actions.map((a) => {
+    const sideLabel = a.side === 'home' ? 'Heim' : a.side === 'away' ? 'Gast' : null
+    const player = a.nr ? lookup[a.side]?.get(String(Number(a.nr))) : null
+    const name = player?.name ?? ''
+
+    if (a.kind === 'goal' || a.kind === 'seven') {
+      counts[a.side] += 1
+      enriched[a.side].goals += 1
+      if (player) {
+        player.goals += 1
+        if (a.kind === 'seven') player.seven += 1
+      }
+      if (!milestone && counts[a.side] === MILESTONE_RANK) {
+        milestone = { rank: MILESTONE_RANK, side: a.side === 'home', name, nr: player?.nr ?? a.nr }
+      }
+    } else if (CARD_KINDS.has(a.kind) && player) {
+      player.cards.push({ kind: a.kind })
+    }
+
+    return { ...a, name, message: formatMessage(a, sideLabel, name) }
+  })
+
+  return { teams: enriched, actions: list, milestone }
 }
 
 // Steckbrief + Kader ändern sich während des Spiels nicht – einmal laden und
@@ -140,5 +225,6 @@ export async function fetchLiveSnapshot(token) {
     tickerCall(token, 'getAllTickerMessages').catch(() => []),
   ])
 
-  return { ...base, actions: normalizeActions(actions) }
+  const { teams, actions: list, milestone } = buildActions(base.teams, normalizeActions(actions))
+  return { info: base.info, teams, actions: list, milestone }
 }

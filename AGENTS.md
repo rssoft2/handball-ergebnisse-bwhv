@@ -77,8 +77,11 @@ Live-Spiele tragen in der API `live: true` sowie `gToken`/`gAppid`; die Antwort 
 - `cmd=getAllTickerMessages` → **Array**; je Eintrag `game_time` (Sekunden), `message`
   (deutscher Text), `home_score`, `guest_score`.
 
-Offizielle Seite: `ticker.html?token=&appid=` → `ticker/index.html?token=` (Dojo-App,
-kein `X-Frame-Options`). Der offizielle Ticker pollt selbst alle 15 s (max. 10×).
+Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kein
+`X-Frame-Options`). `ticker.html?token=&appid=` ist nur eine Demo-Hülle, die per JS
+`document.location.replace("ticker.php?"+search)` macht; `ticker.php` → 302
+`ticker/index.html?token=`. Der Umweg ist unzuverlässig (leere Query → `?token=`), daher
+`TICKER_PAGE_BASE` = `ticker/index.html`. Der offizielle Ticker pollt selbst alle 15 s (max. 10×).
 
 ## Conventions
 
@@ -146,10 +149,20 @@ kein `X-Frame-Options`). Der offizielle Ticker pollt selbst alle 15 s (max. 10×
   Auszeit / Spielstand / Spielzeit). Kopf: Liga, LIVE-Badge, Teams, Stand + Spielzeit (aus der
   letzten Aktion); Liste **neueste Aktion oben**; Karten via `CardMark`; „Spielstand"- und
   Uhr-Meldungen („Spielzeit gestoppt/gestartet", `kind: 'clock'`) werden ausgeblendet.
-  Button **Offizieller Ticker** öffnet `ticker.html?token=&appid=` in neuem Tab. Die Roh­nachrichten
-  nennen die Teams   „Heimmannschaft"/„Gastmannschaft"; `simplifyMessage` vereinheitlicht in der Anzeige
-  („Erfolgreicher 7m-Wurf" → „7m Tor", Teams → „Heim"/„Gast", Auszeit → „Auszeit für Heim/Gast"),
-  Spielernummer bleibt erhalten (z. B. „7m Tor für Heim durch die Nummer 4", „Auszeit für Gast").
+  Button **Offizieller Ticker** öffnet `ticker/index.html?token=` in neuem Tab. Die Roh­nachrichten
+  nennen die Teams „Heimmannschaft"/„Gastmannschaft". `classifyMessage` erkennt den Typ, `buildActions`
+  formatiert die Anzeige einheitlich und baut dabei **Spielerstatistik** auf: `formatMessage` →
+  „<Aktion> für <Heim|Gast> durch die Nummer <nr> <Name>" (Aktionen: `Tor`, `7m Tor`, `Verwarnung`,
+  `2-min Strafe`, `Disqualifikation`, `Disqualifikation mit Bericht`; `Auszeit für Heim/Gast`;
+  `7m-Wurf für Gast: Kein Treffer`). Nummer via `/Nummer\s+(\d+)/`, Seite aus „Heim-/Gastmannschaft".
+  **Achtung**: Karten nennen die Nummer **vor** dem Team („… für die Nummer 7 der Heimmannschaft"),
+  verworfene 7m haben **keine** Nummer. `buildActions` zählt Tore (goal + 7m-Tor) je Spieler,
+  7m-Tore, Karten und markiert das 40. Tor einer Mannschaft (`milestone`); Team-Tore = Summe.
+  `resolvePlayerNames` entfällt (steckt jetzt in `buildActions`). Der Live-Screen hat zwei Tabs **Ticker** /
+  **Aufstellung**: `Lineup` zeigt je Team dieselbe Statistik-Tabelle wie der Spielbericht über die
+  gemeinsame Komponente `PlayerStats.jsx` (`TeamStats`, inkl. `isMilestonePlayer`; auch von
+  `ReportStatsScreen` genutzt), Spieler aus `teams.home/away.players`. `normalizeTeam` filtert
+  Offizielle (Buchstaben als `player_no`) heraus und sortiert nach Nummer.
 - Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
   mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
   `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein

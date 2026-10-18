@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useLive } from '../hooks/useLive.js'
 import { officialTickerUrl } from '../api/live.js'
 import { isFavoriteTeam } from '../utils/teams.js'
 import StateMessage from './StateMessage.jsx'
 import { CardMark } from './ReportCards.jsx'
+import { TeamStats } from './PlayerStats.jsx'
 
 const CARD_KINDS = new Set(['yellow', 'two', 'red', 'blue'])
 
@@ -61,8 +63,40 @@ function KindBadge({ kind }) {
   return null
 }
 
+const VIEWS = [
+  { id: 'ticker', label: 'Ticker' },
+  { id: 'lineup', label: 'Aufstellung' },
+]
+
+// Aufstellung beider Mannschaften mit Spielerstatistik (Nr., Name, Tore, 7m,
+// Karten) – gleiche Darstellung wie im vollständigen Spielbericht.
+function Lineup({ teams, home, away, favoriteTeams, milestone }) {
+  const sides = [
+    { side: 'home', fallback: home, team: teams.home },
+    { side: 'away', fallback: away, team: teams.away },
+  ]
+  return (
+    <div className="space-y-3">
+      {sides.map((side) => (
+        <TeamStats
+          key={side.side}
+          team={{
+            side: side.side,
+            label: side.team?.club || side.fallback,
+            goals: side.team?.goals ?? 0,
+            players: side.team?.players ?? [],
+          }}
+          milestone={milestone}
+          favorite={isFavoriteTeam(side.fallback, favoriteTeams)}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function LiveScreen({ game, favoriteTeams }) {
   const live = useLive(game?.token, Boolean(game?.token))
+  const [view, setView] = useState('ticker')
 
   if (!game?.token) {
     return <StateMessage emptyText="Für dieses Spiel ist kein Live-Ticker verfügbar." />
@@ -147,7 +181,32 @@ export default function LiveScreen({ game, favoriteTeams }) {
         </div>
       </div>
 
-      {actions.length === 0 ? (
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-surface p-1">
+        {VIEWS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setView(item.id)}
+            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+              view === item.id
+                ? 'bg-accentsoft text-accent'
+                : 'text-muted hover:bg-surface2 hover:text-ink'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'lineup' ? (
+        <Lineup
+          teams={data.teams || {}}
+          home={home}
+          away={away}
+          favoriteTeams={favoriteTeams}
+          milestone={data.milestone}
+        />
+      ) : actions.length === 0 ? (
         <StateMessage emptyText="Das Spiel läuft – noch keine Aktionen gemeldet." />
       ) : (
         <ol className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">

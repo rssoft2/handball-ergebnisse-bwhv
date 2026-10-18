@@ -30,8 +30,11 @@ export const REQUEST_GAP_MS = 500
 // kommen CORS-freigegeben (access-control-allow-origin: *) von if_ticker_data.php.
 export const TICKER_DATA_BASE = 'https://spo.handball4all.de/service/if_ticker_data.php'
 
-// Offizielle Ticker-Seite (Dojo-App) zum Verlinken/Öffnen in neuem Tab.
-export const TICKER_PAGE_BASE = 'https://spo.handball4all.de/service/ticker.html'
+// Offizielle Ticker-Seite (Dojo-App) zum Verlinken/Öffnen in neuem Tab. Direkt die
+// Zielseite verwenden: `ticker.html` ist nur eine Demo-Hülle, die per JS auf
+// `ticker.php` weiterleitet (dort 302 → `ticker/index.html`). Der Umweg ist
+// unzuverlässig; `ticker.php?token=` landet am Ende genau hier.
+export const TICKER_PAGE_BASE = 'https://spo.handball4all.de/service/ticker/index.html'
 
 // Der offizielle Ticker fragt selbst alle 15 s nach neuen Nachrichten.
 export const LIVE_POLL_MS = 15000
