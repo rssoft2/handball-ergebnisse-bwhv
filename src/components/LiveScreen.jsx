@@ -135,29 +135,45 @@ export default function LiveScreen({ game, favoriteTeams }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+      <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface p-2 shadow-sm sm:p-4">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted">
-          <span className="font-medium">{info.league || 'Live-Ticker'}</span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-liveink">
+          <span className="min-w-0 flex-1 truncate font-medium">{info.league || 'Live-Ticker'}</span>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-liveink">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-liveink" />
             LIVE
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1 text-right">
-            <span className={homeFav ? 'font-bold text-favink' : 'font-medium text-ink'}>{home}</span>
+        <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:gap-3">
+          <div className="min-w-0 w-full overflow-hidden text-right">
+            <span
+              className={`block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${
+                homeFav ? 'font-bold text-favink' : 'font-medium text-ink'
+              }`}
+              title={home}
+            >
+              {home}
+            </span>
           </div>
           <div className="shrink-0 text-center">
-            <div className="rounded-lg bg-surface2 px-3 py-1 text-2xl font-bold tabular-nums text-ink">
+            <div className="rounded-lg bg-surface2 px-1.5 py-0.5 text-lg font-bold tabular-nums text-ink sm:px-3 sm:py-1 sm:text-2xl">
               {score}
             </div>
             {clock ? (
-              <div className="mt-0.5 text-[11px] tabular-nums text-faint">{clock}</div>
+              <div className="mt-0.5 text-[10px] tabular-nums text-faint sm:text-[11px]">
+                {clock}
+              </div>
             ) : null}
           </div>
-          <div className="min-w-0 flex-1 text-left">
-            <span className={awayFav ? 'font-bold text-favink' : 'font-medium text-ink'}>{away}</span>
+          <div className="min-w-0 w-full overflow-hidden text-left">
+            <span
+              className={`block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${
+                awayFav ? 'font-bold text-favink' : 'font-medium text-ink'
+              }`}
+              title={away}
+            >
+              {away}
+            </span>
           </div>
         </div>
 

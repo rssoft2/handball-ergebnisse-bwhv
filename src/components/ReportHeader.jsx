@@ -24,21 +24,37 @@ export default function ReportHeader({ data, game, favoriteTeams }) {
     .join(' · ')
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1 text-right">
-          <span className={homeFav ? 'font-bold text-favink' : 'font-medium text-ink'}>{home}</span>
+    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-line bg-surface p-2 shadow-sm sm:p-4">
+      <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:gap-3">
+        <div className="min-w-0 w-full overflow-hidden text-right">
+          <span
+            className={`block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${
+              homeFav ? 'font-bold text-favink' : 'font-medium text-ink'
+            }`}
+            title={home}
+          >
+            {home}
+          </span>
         </div>
         <div className="shrink-0 text-center">
-          <div className="rounded-lg bg-surface2 px-3 py-1 text-2xl font-bold tabular-nums text-ink">
+          <div className="rounded-lg bg-surface2 px-1.5 py-0.5 text-lg font-bold tabular-nums text-ink sm:px-3 sm:py-1 sm:text-2xl">
             {score}
           </div>
           {half ? (
-            <div className="mt-0.5 text-[11px] tabular-nums text-faint">HZ {half}</div>
+            <div className="mt-0.5 text-[10px] tabular-nums text-faint sm:text-[11px]">
+              HZ {half}
+            </div>
           ) : null}
         </div>
-        <div className="min-w-0 flex-1 text-left">
-          <span className={awayFav ? 'font-bold text-favink' : 'font-medium text-ink'}>{away}</span>
+        <div className="min-w-0 w-full overflow-hidden text-left">
+          <span
+            className={`block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${
+              awayFav ? 'font-bold text-favink' : 'font-medium text-ink'
+            }`}
+            title={away}
+          >
+            {away}
+          </span>
         </div>
       </div>
 

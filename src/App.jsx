@@ -283,7 +283,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-faint">
         Daten: handball4all.de · inoffizielle Ansicht
-        <br />© 2026 rssoft2 · v1.9
+        <br />© 2026 rssoft2 · v1.9.1
       </footer>
     </div>
   )

@@ -75,58 +75,68 @@ export default function LeagueScorersScreen({
             </span>
           </div>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wide text-faint">
-                <th className="py-1 pr-2 text-right font-semibold">#</th>
-                <th className="py-1 pr-2 text-right font-semibold">Nr.</th>
-                <th className="py-1 text-left font-semibold">Spieler</th>
-                <th className="hidden py-1 pl-2 text-left font-semibold sm:table-cell">Team</th>
-                <th className="py-1 pl-2 text-right font-semibold" title="Spiele">
-                  Sp
-                </th>
-                <th className="py-1 pl-2 text-right font-semibold">Tore</th>
-                <th className="py-1 pl-2 text-right font-semibold" title="Feldtore (ohne 7m)">
-                  Feld
-                </th>
-                <th className="py-1 pl-2 text-right font-semibold" title="7m-Tore">7m</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scorers.map((p, i) => {
-                const fav = isFavoriteTeam(p.team, favoriteTeams)
-                return (
-                  <tr key={`${p.team}|${p.nr}|${p.name}`} className="border-t border-line">
-                    <td className="py-1.5 pr-2 text-right tabular-nums text-faint">{i + 1}</td>
-                    <td className="py-1.5 pr-2 text-right tabular-nums text-muted">{p.nr}</td>
-                    <td className="py-1.5 font-medium text-ink">
-                      {p.name}
-                      <span className="block text-[11px] text-muted sm:hidden">{p.team}</span>
-                    </td>
-                    <td
-                      className={`hidden py-1.5 pl-2 text-xs sm:table-cell ${
-                        fav ? 'font-semibold text-favink' : 'text-muted'
-                      }`}
-                    >
-                      {p.team}
-                    </td>
-                    <td className="py-1.5 pl-2 text-right tabular-nums text-muted">
-                      {p.games}
-                    </td>
-                    <td className="py-1.5 pl-2 text-right font-bold tabular-nums text-ink">
-                      {p.goals}
-                    </td>
-                    <td className="py-1.5 pl-2 text-right tabular-nums text-muted">
-                      {p.goals - p.seven || ''}
-                    </td>
-                    <td className="py-1.5 pl-2 text-right tabular-nums text-muted">
-                      {p.seven || ''}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <div className="-mx-1 overflow-x-auto px-1">
+            <table className="w-full min-w-[320px] text-xs sm:text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wide text-faint sm:text-[11px]">
+                  <th className="py-1 pr-1 text-right font-semibold sm:pr-2">#</th>
+                  <th className="py-1 pr-3 text-right font-semibold sm:pr-4">Nr.</th>
+                  <th className="py-1 text-left font-semibold">Spieler</th>
+                  <th className="hidden py-1 pl-1 text-left font-semibold sm:table-cell sm:pl-2">Team</th>
+                  <th className="py-1 pl-1 text-right font-semibold sm:pl-2" title="Spiele">
+                    Sp
+                  </th>
+                  <th className="py-1 pl-1 text-right font-semibold sm:pl-2">Tore</th>
+                  <th className="py-1 pl-1 text-right font-semibold sm:pl-2" title="Feldtore (ohne 7m)">
+                    Feld
+                  </th>
+                  <th className="py-1 pl-1 pr-0.5 text-right font-semibold sm:pl-2 sm:pr-0">
+                    7m
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {scorers.map((p, i) => {
+                  const fav = isFavoriteTeam(p.team, favoriteTeams)
+                  return (
+                    <tr key={`${p.team}|${p.nr}|${p.name}`} className="border-t border-line">
+                      <td className="py-1 pr-1 text-right tabular-nums text-faint sm:pr-2">{i + 1}</td>
+                      <td className="py-1 pr-3 text-right tabular-nums text-muted sm:pr-4">{p.nr}</td>
+                      <td className="py-1 font-medium text-ink">
+                        <span className="block max-w-[9rem] truncate sm:max-w-none">{p.name}</span>
+                        <span
+                          className={`block text-[10px] sm:hidden ${
+                            fav ? 'font-medium text-favink' : 'text-muted'
+                          }`}
+                        >
+                          {p.team}
+                        </span>
+                      </td>
+                      <td
+                        className={`hidden py-1 pl-1 text-xs sm:table-cell sm:pl-2 ${
+                          fav ? 'font-semibold text-favink' : 'text-muted'
+                        }`}
+                      >
+                        {p.team}
+                      </td>
+                      <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">
+                        {p.games}
+                      </td>
+                      <td className="py-1 pl-1 text-right font-bold tabular-nums text-ink sm:pl-2">
+                        {p.goals}
+                      </td>
+                      <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">
+                        {p.goals - p.seven || ''}
+                      </td>
+                      <td className="py-1 pl-1 pr-0.5 text-right tabular-nums text-muted sm:pl-2 sm:pr-0">
+                        {p.seven || ''}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
 
           <p className="mt-2 px-1 text-center text-[11px] text-faint">{basis}</p>
         </section>

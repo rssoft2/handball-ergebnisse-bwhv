@@ -4,7 +4,12 @@ import { isFavoriteTeam } from '../utils/teams.js'
 
 function TeamName({ name, favorite }) {
   return (
-    <span className={favorite ? 'font-bold text-favink' : 'font-medium text-ink'}>
+    <span
+      className={`block min-w-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap ${
+        favorite ? 'font-bold text-favink' : 'font-medium text-ink'
+      }`}
+      title={name}
+    >
       {name}
     </span>
   )
@@ -23,7 +28,7 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
 
   return (
     <div
-      className={`rounded-2xl border p-3 shadow-sm transition ${
+      className={`w-full min-w-0 overflow-hidden rounded-2xl border p-1.5 shadow-sm transition sm:p-3 ${
         isFav ? 'border-favline bg-favbg' : 'border-line bg-surface'
       }`}
     >
@@ -45,19 +50,19 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1 text-right">
+      <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-center gap-1 sm:gap-2">
+        <div className="min-w-0 w-full overflow-hidden text-right">
           <TeamName name={game.home} favorite={homeFav} />
         </div>
-        <div className="shrink-0 text-center">
-          <div className="rounded-lg bg-surface2 px-2.5 py-1 text-base font-bold tabular-nums text-ink">
+        <div className="w-[44px] justify-self-center text-center sm:w-[64px]">
+          <div className="rounded-lg bg-surface2 px-0 py-0.5 text-xs font-bold tabular-nums text-ink sm:px-1.5 sm:py-1 sm:text-base">
             {result}
           </div>
           {halftime ? (
-            <div className="mt-0.5 text-[10px] tabular-nums text-faint">({halftime})</div>
+            <div className="mt-0.5 text-[8px] tabular-nums text-faint sm:text-[10px]">({halftime})</div>
           ) : null}
         </div>
-        <div className="min-w-0 flex-1 text-left">
+        <div className="min-w-0 w-full overflow-hidden text-left">
           <TeamName name={game.away} favorite={awayFav} />
         </div>
       </div>
@@ -84,18 +89,18 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
       ) : null}
 
       {game.done && game.reportId ? (
-        <div className="mt-2 flex items-center justify-center gap-2">
+        <div className="mt-2 flex items-center justify-center gap-2 overflow-x-auto px-1">
           <button
             type="button"
             onClick={() => onOpenReport?.(game, 'stats')}
-            className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
+            className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
           >
             Statistik
           </button>
           <button
             type="button"
             onClick={() => onOpenReport?.(game, 'timeline')}
-            className="rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
+            className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
           >
             Verlauf
           </button>
@@ -103,7 +108,7 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
             href={`${REPORT_BASE}${game.reportId}`}
             target="_blank"
             rel="noreferrer"
-            className="px-1 text-xs font-medium text-faint transition hover:text-accent hover:underline"
+            className="shrink-0 px-1 text-xs font-medium text-faint transition hover:text-accent hover:underline"
           >
             PDF
           </a>
