@@ -50,8 +50,8 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
         ) : null}
       </div>
 
-      <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-center gap-1 sm:gap-2">
-        <div className="min-w-0 w-full overflow-hidden text-right">
+      <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-center gap-2 sm:gap-3">
+        <div className="min-w-0 w-full overflow-hidden text-right pr-1 sm:pr-2">
           <TeamName name={game.home} favorite={homeFav} />
         </div>
         <div className="w-[44px] justify-self-center text-center sm:w-[64px]">
@@ -62,7 +62,7 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
             <div className="mt-0.5 text-[8px] tabular-nums text-faint sm:text-[10px]">({halftime})</div>
           ) : null}
         </div>
-        <div className="min-w-0 w-full overflow-hidden text-left">
+        <div className="min-w-0 w-full overflow-hidden text-left pl-1 sm:pl-2">
           <TeamName name={game.away} favorite={awayFav} />
         </div>
       </div>
