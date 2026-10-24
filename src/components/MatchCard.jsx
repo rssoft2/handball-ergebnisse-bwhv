@@ -15,7 +15,7 @@ function TeamName({ name, favorite }) {
   )
 }
 
-export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLive }) {
+export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLive, onOpenLeague }) {
   const homeFav = isFavoriteTeam(game.home, favoriteTeams)
   const awayFav = isFavoriteTeam(game.away, favoriteTeams)
   const isFav = homeFav || awayFav
@@ -88,30 +88,47 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
         </div>
       ) : null}
 
-      {game.done && game.reportId ? (
-        <div className="mt-2 flex items-center justify-center gap-2 overflow-x-auto px-1">
-          <button
-            type="button"
-            onClick={() => onOpenReport?.(game, 'stats')}
-            className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
-          >
-            Statistik
-          </button>
-          <button
-            type="button"
-            onClick={() => onOpenReport?.(game, 'timeline')}
-            className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
-          >
-            Verlauf
-          </button>
-          <a
-            href={`${REPORT_BASE}${game.reportId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="shrink-0 px-1 text-xs font-medium text-faint transition hover:text-accent hover:underline"
-          >
-            PDF
-          </a>
+      {(game.done && game.reportId) || game.cl || game.leagueId ? (
+        <div className="mt-2 relative flex items-center justify-center gap-2 overflow-x-auto px-1">
+          <div className="flex items-center gap-2">
+            {game.done && game.reportId ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onOpenReport?.(game, 'stats')}
+                  className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
+                >
+                  Statistik
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenReport?.(game, 'timeline')}
+                  className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
+                >
+                  Verlauf
+                </button>
+              </>
+            ) : null}
+            {(game.cl || game.leagueId) ? (
+              <button
+                type="button"
+                onClick={() => onOpenLeague?.(game.cl || game.leagueId)}
+                className="shrink-0 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
+              >
+                Tabelle
+              </button>
+            ) : null}
+          </div>
+          {game.done && game.reportId ? (
+            <a
+              href={`${REPORT_BASE}${game.reportId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="absolute right-1 shrink-0 px-1 text-xs font-medium text-faint transition hover:text-accent hover:underline"
+            >
+              PDF
+            </a>
+          ) : null}
         </div>
       ) : null}
     </div>

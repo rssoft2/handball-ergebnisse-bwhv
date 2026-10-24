@@ -271,6 +271,11 @@ export default function App() {
             onRetrySpieltag={spieltag.reload}
             onOpenClub={(club) => setClubNav(club)}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
+            onOpenLeague={(leagueId) => {
+              if (!leagueId) return
+              setSelected(leagueId)
+              setTab('spieltag')
+            }}
             isLeagueFavorite={favorites.isLeagueFavorite}
             isClubFavorite={favorites.isClubFavorite}
             isTeamFavorite={favorites.isTeamFavorite}
@@ -283,7 +288,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-faint">
         Daten: handball4all.de · inoffizielle Ansicht
-        <br />© 2026 rssoft2 · v1.9.1
+        <br />© 2026 rssoft2 · v1.10
       </footer>
     </div>
   )

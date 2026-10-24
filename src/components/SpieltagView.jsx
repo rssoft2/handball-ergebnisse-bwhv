@@ -30,6 +30,7 @@ export default function SpieltagView({
   onOpenClub,
   onOpenReport,
   onOpenLive,
+  onOpenLeague,
 }) {
   if (!clubs.length) {
     return (
@@ -78,6 +79,7 @@ export default function SpieltagView({
                   game={game}
                   onOpenReport={onOpenReport}
                   onOpenLive={onOpenLive}
+                  onOpenLeague={onOpenLeague}
                 />
               ))}
             </div>

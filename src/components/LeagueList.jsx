@@ -169,6 +169,7 @@ export default function LeagueList({
   onRetrySpieltag,
   onOpenClub,
   onOpenReport,
+  onOpenLeague,
   isLeagueFavorite,
   isClubFavorite,
   isTeamFavorite,
@@ -276,6 +277,7 @@ export default function LeagueList({
           onOpenClub={onOpenClub}
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
+          onOpenLeague={onOpenLeague}
         />
       ) : (
         <>
