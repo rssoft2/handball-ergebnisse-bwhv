@@ -266,6 +266,7 @@ export default function LeagueList({
           onRetry={onRetryLive}
           favoriteTeams={favoriteTeams}
           onOpenLive={onOpenLive}
+          onOpenLeague={onOpenLeague}
         />
       ) : tab === 'spieltag' ? (
         <SpieltagView
