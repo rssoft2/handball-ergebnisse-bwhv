@@ -6,7 +6,7 @@ import { useFavorites } from './hooks/useFavorites.js'
 import { useReports } from './hooks/useReports.js'
 import { useLiveGames } from './hooks/useLiveGames.js'
 import { useClubSchedule } from './hooks/useClubSchedule.js'
-import { useSpieltag } from './hooks/useSpieltag.js'
+import { useScheduleWeek } from './hooks/useScheduleWeek.js'
 import { useLeagueScorers } from './hooks/useLeagueScorers.js'
 import { startOfDaysAgo } from './utils/format.js'
 import Header from './components/Header.jsx'
@@ -77,14 +77,18 @@ export default function App() {
   // Nur laden/aktualisieren, solange der Live-Tab der Startseite sichtbar ist.
   const liveGames = useLiveGames(ORG, REGION, tab === 'live' && !selected && !liveNav)
 
-  // Spieltagsübersicht: einzelner Verein (ClubScreen) bzw. alle Favoriten-Vereine
-  // (Spieltag-Tab). Nur laden, wenn die jeweilige Ansicht sichtbar ist.
+  // Spielwoche: alle Spiele der Favoriten-Vereine (Mo–So), nur laden, wenn der
+  // Spielwoche-Tab sichtbar ist.
   const clubSchedule = useClubSchedule(ORG, clubNav, Boolean(clubNav))
-  const spieltag = useSpieltag(
-    ORG,
-    favorites.favorites.clubs,
-    tab === 'spieltag' && !selected && !clubNav && !reportNav && !liveNav,
-  )
+  const scheduleWeek = useScheduleWeek(ORG, REGION, {
+    enabled:
+      tab === 'spieltag' &&
+      !selected &&
+      !clubNav &&
+      !reportNav &&
+      !liveNav &&
+      (favorites.favorites.clubs?.length ?? 0) > 0,
+  })
 
   // Liga-Statistik (Torschützenliste): alle Berichte der gewählten Liga laden.
   const scorers = useLeagueScorers(ORG, selected, Boolean(selected) && statsNav)
@@ -264,11 +268,15 @@ export default function App() {
             liveError={liveGames.error}
             onRetryLive={liveGames.reload}
             onOpenLive={(game) => setLiveNav(game)}
-            spieltagClubs={favorites.favorites.clubs}
-            spieltagStatus={spieltag.status}
-            spieltagData={spieltag.data}
-            spieltagError={spieltag.error}
-            onRetrySpieltag={spieltag.reload}
+            weekStatus={scheduleWeek.status}
+            weekData={scheduleWeek.data}
+            weekError={scheduleWeek.error}
+            onRetryWeek={scheduleWeek.reload}
+            weekStart={scheduleWeek.weekStart}
+            weeks={scheduleWeek.weeks}
+            onSelectWeek={scheduleWeek.setWeek}
+            onPrevWeek={scheduleWeek.prevWeek}
+            onNextWeek={scheduleWeek.nextWeek}
             onOpenClub={(club) => setClubNav(club)}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLeague={(leagueId) => {
@@ -288,7 +296,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-faint">
         Daten: handball4all.de · inoffizielle Ansicht
-        <br />© 2026 rssoft2 · v1.10.2
+        <br />© 2026 rssoft2 · v1.12.0
       </footer>
     </div>
   )

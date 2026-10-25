@@ -63,6 +63,10 @@ export const LEAGUE_STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000
 // Zusätzliche Pause zwischen den Berichtsaufrufen (der Textdienst drosselt).
 export const LEAGUE_STATS_GAP_MS = 400
 
+// Wochenplan (Spielwoche): `po&do=`-Aufrufe (landesweit + Region) liefern alle
+// Spiele einer Woche. Kurz cachen, weil Scores/Live sich ändern.
+export const SCHEDULE_TTL_MS = 5 * 60 * 1000
+
 // Einfache Zugangshürde: Zugang nur mit ?k=<secret>. Es liegt nur der
 // SHA-256-Hash im Code, das Secret selbst wird nicht ausgeliefert.
 // Hinweis: reine Hürde, kein echter Schutz (Bundle/URL sind auslesbar).

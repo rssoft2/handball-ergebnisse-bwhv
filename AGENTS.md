@@ -32,12 +32,12 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren (nur bei sichtbarem Tab)
 - `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 30 s aktualisieren (Live-Tab, nur bei sichtbarem Tab)
 - `src/hooks/useClubSchedule.js` — Spieltag-Spiele eines Vereins (`fetchClubSchedule`)
-- `src/hooks/useSpieltag.js` — Spielpläne aller Favoriten-Vereine (Spieltag-Tab, kein Polling)
+- `src/hooks/useScheduleWeek.js` — Wochenspiele (`fetchScheduleByDate`) + Wochen-Navigation (Spielwoche-Tab)
 - `src/hooks/useLeagueScorers.js` — Torschützenliste einer Liga (alle Berichte; nur bei sichtbarem Screen)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, `weekendRange`/`weekendOf`, …)
-- `src/utils/spieltag.js` — Wochenend-Auswahl + Gruppierung (`pickWeekend`, `groupByDay`, `dayLabel`, `weekendLabel`)
+- `src/utils/spieltag.js` — Wochenend-/Wochen-Auswahl + Gruppierung (`pickWeekend`, `weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekendLabel`, `weekLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
-- `src/components/` — Header, LeagueList, LeagueDetail, ClubScreen, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpieltagView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
+- `src/components/` — Header, LeagueList, LeagueDetail, ClubScreen, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -49,7 +49,8 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 
 - `cmd=po&og=<org>` → statewide leagues (`content.classes`), incl. `gClassLevelName`, `gClassGender`, `gClassAGsDesc`
 - `cmd=po&og=<org>&o=<region>` → regional leagues
-- `cmd=po&do=YYYY-MM-DD&o=<region>&og=216` → full week schedule grouped by `content.classes[]` with `games[]` (incl. `menu.dt.list`/`selected`)
+- `cmd=po&do=YYYY-MM-DD&og=216` → week schedule (statewide), grouped by `content.classes[]` with `games[]`
+- `cmd=po&do=YYYY-MM-DD&o=<region>&og=216` → week schedule for the region (disjoint from statewide – both needed)
 - `cmd=ps&og=<org>&cl=<league>&ca=1` → standings (`content.score`) + games (`content.futureGames.games`)
 - `cmd=cs&og=<org>&cs=<text>` → club search (`searchResult.list`, `{id,lname}`, max 50)
 - `cmd=pcu&og=<org>&c=<clubId>` → club page (`content.classes[].games`, grouped by league; je Liga die Partien des **aktuellen Spieltags**)
@@ -97,7 +98,7 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
 
 ## Current state / decisions
 
-- Screens: **LeagueList** (Tabs **Auswahl** / **Live** / **Spieltag** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
+- Screens: **LeagueList** (Tabs **Auswahl** / **Live** / **Spielwoche** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
   gruppiert nach Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden /
   Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
   Tabelle, Kommende Spiele). Letzte Spiele **absteigend** (neueste oben), initial nur die
@@ -185,19 +186,27 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   gemeinsame Komponente `PlayerStats.jsx` (`TeamStats`, inkl. `isMilestonePlayer`; auch von
   `ReportStatsScreen` genutzt), Spieler aus `teams.home/away.players`. `normalizeTeam` filtert
   Offizielle (Buchstaben als `player_no`) heraus und sortiert nach Nummer.
-- **Spieltagsübersicht** (Wochenend-Spiele eines Vereins): `fetchClubSchedule(org, club)`
+- **Spieltagsübersicht eines Vereins** (`ClubScreen`): `fetchClubSchedule(org, club)`
   nutzt `cmd=pcu&c=<clubId>` – die Vereinsseite liefert je Liga genau die Partien des aktuellen
   Spieltags (Feldaufbau wie `po`, daher `normalizeGame` + Liga-Info/`ageGroup`). Kurz gecacht
   (`clubgames:${org}:${clubId}`, `CLUB_GAMES_TTL_MS` 5 min), aufsteigend nach `dateObj`.
-  `fetchClubsSchedules(org, clubs)` lädt mehrere Vereine **nacheinander** (`REQUEST_GAP_MS`) und
-  liefert `{clubs, throttled}`. `src/utils/spieltag.js`: `pickWeekend` wählt Sa+So des aktuellen
-  Wochenendes, sonst das Wochenende des nächsten anstehenden Spiels (`weekendRange`/`weekendOf`
-  in `format.js`); `groupByDay` gruppiert nach Tag, `dayLabel`/`weekendLabel` formatieren.
-  Zwei Einstiege: (1) Tipp auf einen Verein (Favoriten-Kalender-Button bzw. Suchtreffer „Vereine")
-  → `ClubScreen` (App-State `clubNav`); (2) Startseiten-Tab **Spieltag** → `SpieltagView` mit allen
-  Favoriten-Vereinen (je Verein Überschrift antippbar → `ClubScreen`, darunter Spiele nach Tag).
-  Header im `ClubScreen`: Vereinstitel + Stern zum Favorisieren. **Keine** Favoriten-Hervorhebung
-  der Spiele in den Spieltag-Ansichten (bewusst). Kein Polling (nur manuell).
+  `src/utils/spieltag.js`: `pickWeekend` wählt Sa+So des aktuellen Wochenendes, sonst das
+  Wochenende des nächsten anstehenden Spiels (`weekendRange`/`weekendOf` in `format.js`);
+  `groupByDay` gruppiert nach Tag, `dayLabel`/`weekendLabel` formatieren.
+  Einstieg: Tipp auf einen Verein (Favoriten-Kalender-Button bzw. Suchtreffer „Vereine")
+  → `ClubScreen` (App-State `clubNav`). Header im `ClubScreen`: Vereinstitel +
+  Stern zum Favorisieren. **Keine** Favoriten-Hervorhebung der Spiele (bewusst).
+  Kein Polling (nur manuell).
+- **Spielwoche** (Startseiten-Tab): alle Spiele der Favoriten-Vereine einer Kalenderwoche
+  (Mo–So, `SpielwocheView`), je Verein auf-/zuklappbar und nach Tag gruppiert (separater
+  Chevron-Button öffnet den `ClubScreen`). Wochen-Navigation per Pfeilen und Dropdown
+  (Optionen aus `menu.dt.list` der API, `weeks` im Hook).
+  `fetchScheduleByDate(org, region, dateIso)` lädt `cmd=po&do=<dateIso>`
+  **landesweit und** mit `o=<region>` **nacheinander** (`REQUEST_GAP_MS`) und führt beide
+  Listen per `gID` zusammen – die beiden Antworten sind disjunkt (landesweite Ligen fehlen in
+  der Regional-Antwort und umgekehrt; nur zusammen ergibt sich z. B. der komplette Vereinsspieltag).
+  `useScheduleWeek` hält den Montag (`weekStart`), blättert ±7 Tage und lädt nur bei sichtbarem
+  Spielwoche-Tab. Cache `week:${org}:${region ?? 'all'}:${dateIso}` (`SCHEDULE_TTL_MS` 5 min).
 - Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
   mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
   `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein

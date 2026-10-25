@@ -4,7 +4,7 @@ import { ORG } from '../config.js'
 import FavoriteStar from './FavoriteStar.jsx'
 import FavoritesView from './FavoritesView.jsx'
 import LiveGamesView from './LiveGamesView.jsx'
-import SpieltagView from './SpieltagView.jsx'
+import SpielwocheView from './SpielwocheView.jsx'
 import StateMessage from './StateMessage.jsx'
 
 function ChevronRight() {
@@ -112,7 +112,7 @@ function Tabs({ tab, onChange, liveCount }) {
   const items = [
     { id: 'browse', label: 'Auswahl' },
     { id: 'live', label: 'Live', count: liveCount },
-    { id: 'spieltag', label: 'Spieltag' },
+    { id: 'spieltag', label: 'Spielwoche' },
     { id: 'favorites', label: 'Favoriten' },
   ]
   return (
@@ -162,11 +162,15 @@ export default function LeagueList({
   liveError,
   onRetryLive,
   onOpenLive,
-  spieltagClubs,
-  spieltagStatus,
-  spieltagData,
-  spieltagError,
-  onRetrySpieltag,
+  weekStatus,
+  weekData,
+  weekError,
+  onRetryWeek,
+  weekStart,
+  weeks,
+  onSelectWeek,
+  onPrevWeek,
+  onNextWeek,
   onOpenClub,
   onOpenReport,
   onOpenLeague,
@@ -269,12 +273,17 @@ export default function LeagueList({
           onOpenLeague={onOpenLeague}
         />
       ) : tab === 'spieltag' ? (
-        <SpieltagView
-          clubs={spieltagClubs}
-          status={spieltagStatus}
-          data={spieltagData}
-          error={spieltagError}
-          onRetry={onRetrySpieltag}
+        <SpielwocheView
+          clubs={favorites.clubs}
+          status={weekStatus}
+          data={weekData}
+          error={weekError}
+          onRetry={onRetryWeek}
+          weekStart={weekStart}
+          weeks={weeks}
+          onSelectWeek={onSelectWeek}
+          onPrevWeek={onPrevWeek}
+          onNextWeek={onNextWeek}
           onOpenClub={onOpenClub}
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}

@@ -10,6 +10,7 @@ import {
   THROTTLE_BACKOFF_MS,
   REQUEST_GAP_MS,
   LIVE_LIST_TTL_MS,
+  SCHEDULE_TTL_MS,
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 import { isSubsequence, normalizeTeamName } from '../utils/teams.js'
@@ -482,6 +483,87 @@ export async function fetchLiveGames(org, region, force = false) {
   )
 }
 
+// Spiele einer `po&do=`-Wochenübersicht: alle Klassen inkl. Liga-Infos und
+// Altersklasse (noch nicht dedupliziert).
+export function scheduleGamesOfPayload(payload) {
+  const games = []
+  for (const c of payload?.content?.classes ?? []) {
+    const ageGroup = ageGroupOf(trim(c.gClassGender), c.gClassAGsDesc)
+    const section = sectionOf(ageGroup)
+    if (!section) continue
+    for (const raw of c.games ?? []) {
+      const game = normalizeGame(raw)
+      if (!game.id) continue
+      games.push({
+        ...game,
+        leagueId: String(c.gClassID),
+        leagueName: trim(c.gClassLname || c.gClassSname),
+        leagueLevel: trim(c.gClassLevelName),
+        leagueSection: section,
+        ageGroup,
+      })
+    }
+  }
+  return games
+}
+
+function sortScheduleGames(games) {
+  return [...games].sort((a, b) => {
+    const sectionDiff = sectionRank(a.leagueSection) - sectionRank(b.leagueSection)
+    if (sectionDiff !== 0) return sectionDiff
+    const ageDiff = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
+    if (ageDiff !== 0) return ageDiff
+    const levelDiff = levelRank(a.leagueLevel) - levelRank(b.leagueLevel)
+    if (levelDiff !== 0) return levelDiff
+    const nameDiff = a.leagueName.localeCompare(b.leagueName, 'de')
+    if (nameDiff !== 0) return nameDiff
+    return byDateAsc(a, b)
+  })
+}
+
+// Alle Spiele einer Kalenderwoche (Mo–So). `dateIso` ist ein beliebiger Tag der
+// Woche; die API liefert die Woche, in der das Datum liegt. Landesweite und
+// regionale Übersicht sind getrennt, daher beide laden und zusammenführen.
+export async function fetchScheduleByDate(org, region, dateIso, force = false) {
+  if (!dateIso) return { games: [], weekStart: dateIso, weeks: [] }
+  return getCached(
+    `week:${org}:${region ?? 'all'}:${dateIso}`,
+    async () => {
+      const params = [{ cmd: 'po', og: org, do: dateIso }]
+      if (region) params.push({ cmd: 'po', og: org, do: dateIso, o: region })
+
+      // Nacheinander mit kleiner Pause statt parallel – die API drosselt
+      // gleichzeitige Aufrufe schnell.
+      const payloads = []
+      for (let i = 0; i < params.length; i += 1) {
+        if (i > 0) await sleep(REQUEST_GAP_MS)
+        payloads.push(await getJson(params[i]))
+      }
+
+      const byId = new Map()
+      const weeks = new Set()
+      for (const payload of payloads) {
+        for (const game of scheduleGamesOfPayload(payload)) {
+          if (!byId.has(game.id)) byId.set(game.id, game)
+        }
+        // `menu.dt.list`: alle Spielwochen der Saison (ISO-Montag → Label).
+        for (const iso of Object.keys(payload?.menu?.dt?.list ?? {})) {
+          const year = Number(iso.slice(0, 4))
+          if (/^\d{4}-\d{2}-\d{2}$/.test(iso) && year >= 2000 && year <= 2100) weeks.add(iso)
+        }
+      }
+
+      return {
+        games: sortScheduleGames([...byId.values()]),
+        weekStart: dateIso,
+        weeks: [...weeks].sort(),
+      }
+    },
+    force,
+    SCHEDULE_TTL_MS,
+  )
+}
+
 // Tabelle + Spiele einer Liga
 export async function fetchLeague(org, league, force = false) {
   return getCached(
@@ -592,29 +674,6 @@ export async function fetchClubSchedule(org, club, force = false) {
     force,
     CLUB_GAMES_TTL_MS,
   )
-}
-
-// Spielpläne mehrerer Vereine (für den Spieltag-Tab) – nacheinander mit kleiner
-// Pause, damit die API nicht drosselt. `throttled` markiert unvollständige Ergebnisse.
-export async function fetchClubsSchedules(org, clubs) {
-  const list = Array.isArray(clubs) ? clubs : []
-  const result = []
-  let throttled = false
-  for (let i = 0; i < list.length; i += 1) {
-    if (i > 0) await sleep(REQUEST_GAP_MS)
-    const club = list[i]
-    try {
-      const games = await fetchClubSchedule(org, club)
-      result.push({ clubId: String(club.clubId), clubName: trim(club.clubName), games })
-    } catch (error) {
-      if (isThrottled(error)) {
-        throttled = true
-        break
-      }
-      result.push({ clubId: String(club.clubId), clubName: trim(club.clubName), games: [] })
-    }
-  }
-  return { clubs: result, throttled }
 }
 
 // Sucht Vereine zum Begriff und sammelt deren Mannschaften. `onClubs` wird noch
