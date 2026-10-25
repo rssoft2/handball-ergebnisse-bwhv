@@ -172,8 +172,7 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   Auszeit / Spielstand / Spielzeit). Kopf: Liga, LIVE-Badge, Teams, Stand + Spielzeit (aus der
   letzten Aktion); Liste **neueste Aktion oben**; Karten via `CardMark`; „Spielstand"- und
   Uhr-Meldungen („Spielzeit gestoppt/gestartet", `kind: 'clock'`) werden ausgeblendet.
-  Button **Offizieller Ticker** öffnet `ticker/index.html?token=` in neuem Tab. Die Roh­nachrichten
-  nennen die Teams „Heimmannschaft"/„Gastmannschaft". `classifyMessage` erkennt den Typ, `buildActions`
+  Die Roh­nachrichten nennen die Teams „Heimmannschaft"/„Gastmannschaft". `classifyMessage` erkennt den Typ, `buildActions`
   formatiert die Anzeige einheitlich und baut dabei **Spielerstatistik** auf: `formatMessage` →
   „<Aktion> für <Heim|Gast> durch die Nummer <nr> <Name>" (Aktionen: `Tor`, `7m Tor`, `Verwarnung`,
   `2-min Strafe`, `Disqualifikation`, `Disqualifikation mit Bericht`; `Auszeit für Heim/Gast`;

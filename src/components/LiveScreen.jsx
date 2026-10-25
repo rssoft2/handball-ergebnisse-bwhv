@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useLive } from '../hooks/useLive.js'
-import { officialTickerUrl } from '../api/live.js'
 import { isFavoriteTeam } from '../utils/teams.js'
 import StateMessage from './StateMessage.jsx'
 import { CardMark } from './ReportCards.jsx'
@@ -183,17 +182,6 @@ export default function LiveScreen({ game, favoriteTeams }) {
           {info.referees.length ? (
             <div className="text-faint">Schiedsrichter: {info.referees.join(' · ')}</div>
           ) : null}
-        </div>
-
-        <div className="mt-3 flex items-center justify-center">
-          <a
-            href={officialTickerUrl(game.token, game.appid)}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-surface2 active:scale-95"
-          >
-            Offizieller Ticker
-          </a>
         </div>
       </div>
 
