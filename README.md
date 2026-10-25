@@ -9,4 +9,4 @@
 | 6 | Mannschafts-Statistik | 6 |
 | 7 | Backend für caching und refresh der H4All Daten | 8 |
 | 8 | Vereins-Logos | 7 |
-
+| 9 | Auswahl der Spielwoche | 3 |

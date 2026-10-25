@@ -1,23 +1,18 @@
 # AGENTS.md
 
-Project memory for opencode. Read this first every session. Keep it short and current.
-
 ## What this is
 
-Mobile-first web app that shows **handball results, standings and fixtures** for the
-Baden-Württembergischer HV (BWHV, org `216`) plus its region **Schwarzwald-Rhein**
-(`246`). German UI. Unofficial companion view, with **HSG Ettlingen** highlighted
-everywhere. No backend — the browser calls the public handball4all JSON API directly.
-Spielberichte (PDF) kommen über den CORS-fähigen Textdienst r.jina.ai (siehe unten).
+Mobile-first German web app for BWHV (org `216`) + Schwarzwald-Rhein (`246`). No backend — browser calls the public handball4all JSON API directly. Spielberichte come via `r.jina.ai` (CORS-friendly text). **HSG Ettlingen** is highlighted everywhere.
 
 ## Commands
 
-- `npm run dev` — Vite dev server (host exposed on LAN)
-- `npm run build` — production build to `dist/` (plain `vite build`, not watch)
-- `npm run preview` — preview the build
-- `npm run qr` — prints LAN URL as a terminal QR and writes `app-qr.png` (gitignored)
+- `npm run dev` — Vite dev server (exposed on LAN)
+- `npm run build` — production build to `dist/` (`vite build`)
+- `npm run preview` — preview build
+- `npm run qr` — print LAN QR + write `app-qr.png` (gitignored)
+- Tests: `npx vitest run` (Vitest + RTL). Setup in `src/test/setup.js`, fixtures in `src/test/fixtures*.js`.
 
-No test runner and no linter. Verify via the dev server + UI and `npm run build`.
+**PowerShell**: use `;` not `&&`. `grep`/`tail` may be unavailable — use `Select-String`/`Get-Content | Select-Object -Last/ -First`. Verify via dev/UI and `npm run build`; `npx vitest run` for UI tests.
 
 ## Stack
 
@@ -54,6 +49,7 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 
 - `cmd=po&og=<org>` → statewide leagues (`content.classes`), incl. `gClassLevelName`, `gClassGender`, `gClassAGsDesc`
 - `cmd=po&og=<org>&o=<region>` → regional leagues
+- `cmd=po&do=YYYY-MM-DD&o=<region>&og=216` → full week schedule grouped by `content.classes[]` with `games[]` (incl. `menu.dt.list`/`selected`)
 - `cmd=ps&og=<org>&cl=<league>&ca=1` → standings (`content.score`) + games (`content.futureGames.games`)
 - `cmd=cs&og=<org>&cs=<text>` → club search (`searchResult.list`, `{id,lname}`, max 50)
 - `cmd=pcu&og=<org>&c=<clubId>` → club page (`content.classes[].games`, grouped by league; je Liga die Partien des **aktuellen Spieltags**)
