@@ -12,6 +12,8 @@ Mobile-first German web app for BWHV (org `216`) + Schwarzwald-Rhein (`246`). No
 - `npm run qr` — print LAN QR + write `app-qr.png` (gitignored)
 - Tests: `npx vitest run` (Vitest + RTL). Setup in `src/test/setup.js`, fixtures in `src/test/fixtures*.js`.
 
+Git: Do not push without approval!
+
 **PowerShell**: use `;` not `&&`. `grep`/`tail` may be unavailable — use `Select-String`/`Get-Content | Select-Object -Last/ -First`. Verify via dev/UI and `npm run build`; `npx vitest run` for UI tests.
 
 ## Stack
