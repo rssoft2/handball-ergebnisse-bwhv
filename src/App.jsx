@@ -87,7 +87,8 @@ export default function App() {
       !clubNav &&
       !reportNav &&
       !liveNav &&
-      (favorites.favorites.clubs?.length ?? 0) > 0,
+      ((favorites.favorites.clubs?.length ?? 0) > 0 ||
+        (favorites.favorites.teams?.length ?? 0) > 0),
   })
 
   // Liga-Statistik (Torschützenliste): alle Berichte der gewählten Liga laden.
@@ -296,7 +297,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-faint">
         Daten: handball4all.de · inoffizielle Ansicht
-        <br />© 2026 rssoft2 · v1.12.0
+        <br />© 2026 rssoft2 · v1.13.0
       </footer>
     </div>
   )

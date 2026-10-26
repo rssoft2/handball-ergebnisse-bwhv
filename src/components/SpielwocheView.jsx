@@ -2,11 +2,16 @@ import { useState } from 'react'
 import StateMessage from './StateMessage.jsx'
 import MatchCard from './MatchCard.jsx'
 import { groupByDay, dayLabel, gamesInRange, weekOf, weekLabel } from '../utils/spieltag.js'
-import { isFavoriteTeam } from '../utils/teams.js'
+import { isFavoriteTeam, normalizeTeamName } from '../utils/teams.js'
 
 function parseIso(iso) {
   const [year, month, day] = String(iso).split('-').map(Number)
   return new Date(year, (month || 1) - 1, day || 1)
+}
+
+function teamPlays(game, teamName) {
+  if (!teamName) return false
+  return isFavoriteTeam(game.home, [teamName]) || isFavoriteTeam(game.away, [teamName])
 }
 
 function ChevronLeft() {
@@ -60,15 +65,16 @@ function ChevronDown({ className = 'h-4 w-4' }) {
   )
 }
 
+function teamKey(teamName) {
+  return normalizeTeamName(teamName)
+}
+
 function clubGamesOf(club, games) {
   const clubName = String(club?.clubName ?? '').trim()
   if (!clubName) return []
   const seen = new Set()
   return games
-    .filter(
-      (game) =>
-        isFavoriteTeam(game.home, [clubName]) || isFavoriteTeam(game.away, [clubName]),
-    )
+    .filter((game) => matchesTeam(game, clubName))
     .filter((game) => {
       if (!game.id || seen.has(game.id)) return false
       seen.add(game.id)
@@ -77,10 +83,11 @@ function clubGamesOf(club, games) {
     .sort((a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0))
 }
 
-// Spielwoche: alle Spiele der favorisierten Vereine innerhalb einer Kalenderwoche
-// (Mo–So), je Verein auf-/zuklappbar und nach Tag gruppiert.
+// Spielwoche: alle Spiele der favorisierten Vereine/Mannschaften innerhalb einer
+// Kalenderwoche (Mo–So), je Verein auf-/zuklappbar und nach Tag gruppiert.
 export default function SpielwocheView({
   clubs = [],
+  teams = [],
   status,
   data,
   error,
@@ -97,9 +104,25 @@ export default function SpielwocheView({
 }) {
   const [collapsed, setCollapsed] = useState({})
 
-  if (!Array.isArray(clubs) || clubs.length === 0) {
+  const clubList = Array.isArray(clubs) ? clubs : []
+  const teamList = Array.isArray(teams) ? teams : []
+
+  const clubNames = clubList
+    .map((club) => String(club?.clubName ?? '').trim())
+    .filter(Boolean)
+
+  // Mannschaften ohne favorisierten Verein (nach Name+Liga)
+  const standaloneTeams = teamList
+    .map((team) => ({
+      name: String(team?.name ?? team?.teamName ?? '').trim(),
+      leagueId: String(team?.leagueId ?? '').trim(),
+    }))
+    .filter((team) => team.name)
+    .filter((team) => !clubNames.some((clubName) => isFavoriteTeam(team.name, [clubName])))
+
+  if (clubNames.length === 0 && standaloneTeams.length === 0) {
     return (
-      <StateMessage emptyText="Noch keine Vereine als Favoriten. Tippe bei einem Verein auf den Stern." />
+      <StateMessage emptyText="Noch keine Vereine oder Mannschaften als Favoriten. Tippe auf den Stern." />
     )
   }
 
@@ -170,14 +193,54 @@ export default function SpielwocheView({
     )
   }
 
+  if (clubNames.length === 0 && standaloneTeams.length === 0) {
+    return (
+      <div className="space-y-3">
+        {header}
+        <StateMessage emptyText="Noch keine Vereine oder Mannschaften als Favoriten. Tippe auf den Stern." />
+      </div>
+    )
+  }
+
   const games = gamesInRange(data?.games ?? [], range)
-  const groups = clubs
-    .map((club) => ({
-      clubId: String(club.clubId),
-      clubName: club.clubName,
-      games: clubGamesOf(club, games),
-    }))
-    .filter((group) => group.games.length > 0)
+  const groups = []
+
+  for (const club of clubList) {
+    const clubId = String(club?.clubId ?? '').trim()
+    if (!clubId) continue
+    const clubName = String(club?.clubName ?? '').trim()
+    if (!clubName) continue
+    const seen = new Set()
+    const matched = games
+      .filter((game) => isFavoriteTeam(game.home, [clubName]) || isFavoriteTeam(game.away, [clubName]))
+      .filter((game) => {
+        if (!game.id || seen.has(game.id)) return false
+        seen.add(game.id)
+        return true
+      })
+      .sort((a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0))
+    if (matched.length === 0) continue
+    groups.push({ clubId, clubName, games: matched, kind: 'club' })
+  }
+
+  for (const team of standaloneTeams) {
+    const teamName = team.name
+    const seen = new Set()
+    const matched = games
+      .filter((game) => {
+        if (!teamPlays(game, teamName)) return false
+        if (team.leagueId && game.leagueId) return String(game.leagueId) === team.leagueId
+        return true
+      })
+      .filter((game) => {
+        if (!game.id || seen.has(game.id)) return false
+        seen.add(game.id)
+        return true
+      })
+      .sort((a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0))
+    if (matched.length === 0) continue
+    groups.push({ clubId: `team:${team.leagueId || ''}:${teamName}`, clubName: teamName, games: matched, kind: 'team' })
+  }
 
   if (groups.length === 0) {
     return (
@@ -220,15 +283,17 @@ export default function SpielwocheView({
                   className={`h-4 w-4 shrink-0 text-faint transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
               </button>
-              <button
-                type="button"
-                onClick={() => onOpenClub?.({ clubId: group.clubId, clubName: group.clubName })}
-                aria-label={`${group.clubName} öffnen`}
-                title="Vereinsansicht öffnen"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-faint transition hover:bg-surface2 hover:text-ink"
-              >
-                <ChevronRight />
-              </button>
+              {group.kind !== 'team' ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenClub?.({ clubId: group.clubId, clubName: group.clubName })}
+                  aria-label={`${group.clubName} öffnen`}
+                  title="Vereinsansicht öffnen"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-faint transition hover:bg-surface2 hover:text-ink"
+                >
+                  <ChevronRight />
+                </button>
+              ) : null}
             </div>
 
             {isOpen ? (

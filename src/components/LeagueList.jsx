@@ -275,6 +275,7 @@ export default function LeagueList({
       ) : tab === 'spieltag' ? (
         <SpielwocheView
           clubs={favorites.clubs}
+          teams={favorites.teams}
           status={weekStatus}
           data={weekData}
           error={weekError}

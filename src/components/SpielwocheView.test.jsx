@@ -43,8 +43,8 @@ const data = {
 
 describe('SpielwocheView', () => {
   it('zeigt Hinweis ohne Favoriten', () => {
-    render(<SpielwocheView clubs={[]} status="ready" data={data} />)
-    expect(screen.getByText(/keine vereine als favoriten/i)).toBeInTheDocument()
+    render(<SpielwocheView clubs={[]} teams={[]} status="ready" data={data} />)
+    expect(screen.getByText(/keine vereine oder mannschaften als favoriten/i)).toBeInTheDocument()
   })
 
   it('zeigt nur Spiele der favorisierten Vereine und der aktuellen Woche', () => {
