@@ -1,10 +1,12 @@
 import { CardsCell } from './ReportCards.jsx'
 
 // Die Berichtsspalte „7m/ Tore" liefert "Versuche/verwandelte" (z. B. "6/5");
-// angezeigt werden hier die verwandelten 7m-Tore. Live liefert bereits eine Zahl.
+// angezeigt als "verwandelte/Versuche", also z. B. "5/6".
 function sevenValue(seven) {
   const m = String(seven ?? '').match(/^(\d+)\s*\/\s*(\d+)$/)
-  return m ? Number(m[2]) : seven || ''
+  if (m) return `${m[2]}/${m[1]}`
+  if (seven == null || seven === '') return ''
+  return seven
 }
 
 function isMilestonePlayer(team, player, milestone) {
@@ -36,7 +38,7 @@ export function TeamStats({ team, milestone, favorite }) {
             <th className="w-8 py-1 text-left font-medium">Nr.</th>
             <th className="py-1 text-left font-medium">Spieler</th>
             <th className="w-12 py-1 text-right font-medium">Tore</th>
-            <th className="w-12 py-1 text-right font-medium" title="7m-Tore">
+            <th className="w-12 py-1 text-right font-medium" title="7m (verwandelte/Versuche)">
               7m
             </th>
             <th className="w-24 py-1 text-right font-medium">Karten</th>
@@ -62,7 +64,11 @@ export function TeamStats({ team, milestone, favorite }) {
                 <td className="py-1 text-right font-semibold tabular-nums text-ink">
                   {p.goals || ''}
                 </td>
-                <td className="py-1 text-right tabular-nums text-muted">{sevenValue(p.seven)}</td>
+                <td className="py-1 text-right tabular-nums text-muted">
+                  {p.sevenAttempts
+                    ? `${p.seven || 0}/${p.sevenAttempts}`
+                    : sevenValue(p.seven)}
+                </td>
                 <td className="py-1 text-right">
                   <CardsCell cards={p.cards} />
                 </td>

@@ -179,8 +179,13 @@ function buildActions(baseTeams, actions) {
       enriched[a.side].goals += 1
       if (player) {
         player.goals += 1
-        if (a.kind === 'seven') player.seven += 1
+        if (a.kind === 'seven') {
+          player.seven += 1
+          player.sevenAttempts = (player.sevenAttempts || 0) + 1
+        }
       }
+    } else if (a.kind === 'missed' && a.side && player) {
+      player.sevenAttempts = (player.sevenAttempts || 0) + 1
       if (!milestone && counts[a.side] === MILESTONE_RANK) {
         milestone = { rank: MILESTONE_RANK, side: a.side === 'home', name, nr: player?.nr ?? a.nr }
       }
