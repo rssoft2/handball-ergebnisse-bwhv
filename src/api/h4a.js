@@ -15,6 +15,20 @@ import {
 import { parseGameDate, trim } from '../utils/format.js'
 import { isSubsequence, normalizeTeamName } from '../utils/teams.js'
 
+async function mapWithConcurrency(items, limit, fn) {
+  if (!Array.isArray(items) || items.length === 0) return []
+  const out = new Array(items.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++
+      out[index] = await fn(items[index], index)
+    }
+  })
+  await Promise.all(workers)
+  return out
+}
+
 const CACHE_PREFIX = 'h4a:cache:v7'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -605,40 +619,123 @@ async function findClubs(org, query) {
   return clubs
 }
 
-// Mannschaften eines Vereins (aus dessen Spielen) mit Liga-Label.
-export async function fetchClubTeams(org, club) {
-  const key = `clubteams:${org}:${club.clubId}`
-  const cached = readCache(key)
+async function fetchLeagueTeamNames(org, leagueId) {
+  const key = `leagueteams:${org}:${leagueId}`
+  return getCached(
+    key,
+    async () => {
+      const payload = await getJson({ cmd: 'ps', og: org, cl: leagueId })
+      const list = payload.content?.teamsList ?? []
+      const names = []
+      const seen = new Set()
+      for (const row of list) {
+        const name = trim(row.teamName ?? row.tabTeamname)
+        if (!name) continue
+        const id = normalizeTeamName(name)
+        if (seen.has(id)) continue
+        seen.add(id)
+        names.push(name)
+      }
+      return names
+    },
+    false,
+    CLUB_TEAMS_TTL_MS,
+  )
+}
+
+// Mannschaften eines Vereins.
+export async function fetchClubTeams(org, club, options = {}) {
+  const complete = options.complete !== false
+  const clubId = String(club?.clubId ?? '').trim()
+  if (!clubId) return []
+  const cacheKey = complete
+    ? `clubteams:v2:${org}:${clubId}`
+    : `clubteams:partial:${org}:${clubId}`
+  const cached = readCache(cacheKey)
   if (cached) return cached
 
-  const payload = await getJson({ cmd: 'pcu', og: org, c: club.clubId })
+  const payload = await getJson({ cmd: 'pcu', og: org, c: clubId })
   const classes = payload.content?.classes ?? []
   const clubNorm = normalizeTeamName(club.clubName)
 
   const byTeam = new Map()
-  for (const cls of classes) {
-    const leagueId = cls.gClassID
+  let throttled = false
+
+  const classList = classes.map((cls) => {
+    const leagueId = String(cls.gClassID ?? '').trim()
     const leagueName = trim(cls.gClassLname || cls.gClassSname)
+    const leagueLevel = trim(cls.gClassLevelName)
+    const ageGroup = ageGroupOf(trim(cls.gClassGender), cls.gClassAGsDesc)
+    const section = sectionOf(ageGroup)
+    const ownNames = new Set()
+
     for (const game of cls.games ?? []) {
       for (const raw of [game.gHomeTeam, game.gGuestTeam]) {
         const teamName = trim(raw)
         if (!teamName) continue
-        // Nur die eigene Mannschaft des Vereins. Kurzname (aus den Spielen) und
-        // Vereinsname sind oft unterschiedlich lang ("HSG Ettlingen" vs.
-        // "HSG Ettlingen 2"), daher in beide Richtungen prüfen.
         const teamNorm = normalizeTeamName(teamName)
         const matches =
           isSubsequence(clubNorm, teamNorm) || isSubsequence(teamNorm, clubNorm)
         if (!matches) continue
-        const id = `${leagueId}:${teamName}`
-        if (byTeam.has(id)) continue
-        byTeam.set(id, { teamName, leagueId, leagueName, clubName: club.clubName })
+        ownNames.add(teamName)
       }
+    }
+    return { cls, leagueId, leagueName, leagueLevel, ageGroup, section, ownNames, needStandings: complete && ownNames.size === 0 }
+  })
+
+  if (complete) {
+    const missing = classList.filter((c) => c.needStandings && c.leagueId)
+    await mapWithConcurrency(missing, 2, async (entry) => {
+      try {
+        const names = await fetchLeagueTeamNames(org, entry.leagueId)
+        await sleep(REQUEST_GAP_MS)
+        for (const teamName of names) {
+          const teamNorm = normalizeTeamName(teamName)
+          const matches =
+            isSubsequence(clubNorm, teamNorm) || isSubsequence(teamNorm, clubNorm)
+          if (!matches) continue
+          entry.ownNames.add(teamName)
+        }
+      } catch (error) {
+        if (isThrottled(error)) throttled = true
+      }
+    })
+  }
+
+  for (const entry of classList) {
+    if (!entry.leagueId) continue
+    for (const teamName of entry.ownNames) {
+      const id = `${entry.leagueId}:${teamName}`
+      if (byTeam.has(id)) continue
+      byTeam.set(id, {
+        teamName,
+        leagueId: entry.leagueId,
+        leagueName: entry.leagueName,
+        leagueLevel: entry.leagueLevel,
+        ageGroup: entry.ageGroup,
+        section: entry.section,
+        clubName: club.clubName,
+      })
     }
   }
 
-  const teams = [...byTeam.values()].sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
-  writeCache(key, teams, CLUB_TEAMS_TTL_MS)
+  const teams = [...byTeam.values()].sort((a, b) => {
+    const sr = sectionRank(a.section) - sectionRank(b.section)
+    if (sr !== 0) return sr
+    const ar = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
+    if (ar !== 0) return ar
+    const lr = levelRank(a.leagueLevel) - levelRank(b.leagueLevel)
+    if (lr !== 0) return lr
+    const ln = String(a.leagueName || '').localeCompare(String(b.leagueName || ''), 'de')
+    if (ln !== 0) return ln
+    return a.teamName.localeCompare(b.teamName, 'de')
+  })
+  writeCache(cacheKey, teams, complete ? CLUB_TEAMS_TTL_MS : 5 * 60 * 1000)
+  if (throttled && teams.length === 0) {
+    const error = new Error('Die Handball4all-Schnittstelle drosselt gerade.')
+    error.throttled = true
+    throw error
+  }
   return teams
 }
 
@@ -676,6 +773,15 @@ export async function fetchClubSchedule(org, club, force = false) {
   )
 }
 
+function clubNameMatchesQuery(clubName, query) {
+  const clubNorm = normalizeTeamName(clubName)
+  const queryNorm = normalizeTeamName(query)
+  if (!clubNorm || !queryNorm) return false
+  if (clubNorm === queryNorm) return true
+  if (clubNorm.startsWith(queryNorm)) return true
+  return isSubsequence(queryNorm, clubNorm) || isSubsequence(clubNorm, queryNorm)
+}
+
 // Sucht Vereine zum Begriff und sammelt deren Mannschaften. `onClubs` wird noch
 // vor dem Laden der Mannschaften aufgerufen (für sofortiges Feedback).
 // `throttled` ist true, wenn die API gedrosselt hat (429/401) – dann sind die
@@ -697,11 +803,19 @@ export async function searchTeams(org, query, { onClubs } = {}) {
   const teams = []
   const seen = new Set()
   let throttled = false
+
+  const qNorm = normalizeTeamName(q)
+  const exactMatches = limited.filter((club) => normalizeTeamName(club.clubName) === qNorm)
+  const strongClubs = (
+    exactMatches.length ? exactMatches : limited.length === 1 ? limited : []
+  ).slice(0, 2)
+
   for (const club of limited) {
-    await sleep(CLUB_FETCH_INTERVAL_MS)
+    const complete = strongClubs.some((c) => c.clubId === club.clubId)
+    if (!complete) await sleep(CLUB_FETCH_INTERVAL_MS)
     let clubTeams
     try {
-      clubTeams = await fetchClubTeams(org, club)
+      clubTeams = await fetchClubTeams(org, club, { complete })
     } catch (error) {
       if (isThrottled(error)) {
         throttled = true
@@ -717,6 +831,16 @@ export async function searchTeams(org, query, { onClubs } = {}) {
     }
   }
 
-  teams.sort((a, b) => a.teamName.localeCompare(b.teamName, 'de'))
+  teams.sort((a, b) => {
+    const sr = sectionRank(a.section) - sectionRank(b.section)
+    if (sr !== 0) return sr
+    const ar = (AGE_ORDER[a.ageGroup] ?? 99) - (AGE_ORDER[b.ageGroup] ?? 99)
+    if (ar !== 0) return ar
+    const lr = levelRank(a.leagueLevel) - levelRank(b.leagueLevel)
+    if (lr !== 0) return lr
+    const ln = String(a.leagueName || '').localeCompare(String(b.leagueName || ''), 'de')
+    if (ln !== 0) return ln
+    return a.teamName.localeCompare(b.teamName, 'de')
+  })
   return { clubs, teams, throttled }
 }

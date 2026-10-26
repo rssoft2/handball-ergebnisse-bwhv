@@ -30,12 +30,12 @@ function BallIcon() {
       <img
         src={`${base}handball-icon-light-mode.svg`}
         alt="Tor"
-        className="h-4 w-4 [[data-theme=dark]_&]:hidden"
+        className="h-4 w-4 in-data-[theme=dark]:hidden"
       />
       <img
         src={`${base}handball-icon-dark-mode.svg`}
         alt="Tor"
-        className="hidden h-4 w-4 [[data-theme=dark]_&]:inline"
+        className="hidden h-4 w-4 in-data-[theme=dark]:inline"
       />
     </span>
   )
