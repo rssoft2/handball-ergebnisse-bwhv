@@ -51,19 +51,14 @@ function LeagueRow({ league, onSelect, starred, onToggleStar }) {
   )
 }
 
-function ClubRow({ club, onSelect, starred, onToggleStar }) {
+function ClubRow({ club, starred, onToggleStar }) {
   return (
     <div className="flex items-center gap-1 rounded-lg px-1 transition hover:bg-surface2">
-      <button
-        type="button"
-        onClick={() => onSelect?.(club)}
-        className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2.5 text-left active:scale-[0.99]"
-      >
+      <div className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2.5">
         <div className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
           {club.clubName}
         </div>
-        <ChevronRight />
-      </button>
+      </div>
       <FavoriteStar active={starred} label={club.clubName} onToggle={() => onToggleStar(club)} />
     </div>
   )
@@ -171,7 +166,6 @@ export default function LeagueList({
   onSelectWeek,
   onPrevWeek,
   onNextWeek,
-  onOpenClub,
   onOpenReport,
   onOpenLeague,
   isLeagueFavorite,
@@ -260,7 +254,6 @@ export default function LeagueList({
           onToggleLeague={toggleLeague}
           onToggleClub={toggleClub}
           onToggleTeam={toggleTeam}
-          onOpenClub={onOpenClub}
         />
       ) : tab === 'live' ? (
         <LiveGamesView
@@ -285,7 +278,6 @@ export default function LeagueList({
           onSelectWeek={onSelectWeek}
           onPrevWeek={onPrevWeek}
           onNextWeek={onNextWeek}
-          onOpenClub={onOpenClub}
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
           onOpenLeague={onOpenLeague}
@@ -376,7 +368,6 @@ export default function LeagueList({
                       <ClubRow
                         key={club.clubId}
                         club={club}
-                        onSelect={onOpenClub}
                         starred={isClubFavorite(club.clubName)}
                         onToggleStar={toggleClub}
                       />

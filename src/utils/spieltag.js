@@ -1,5 +1,4 @@
-// Wochenend-/Wochen-Auswahl und -Gruppierung für die Spielplan-Ansichten.
-import { weekendRange, weekendOf } from './format.js'
+// Wochen-/Tages-Auswahl und -Gruppierung für die Spielplan-Ansichten.
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -21,23 +20,6 @@ export function weekOf(ms, now = new Date()) {
   const end = new Date(d)
   end.setDate(end.getDate() + 7)
   return { start: d, end }
-}
-
-// Spiele des aktuellen Wochenendes (Sa+So); sind dort keine, das Wochenende des
-// nächsten anstehenden Spiels. Liefert { range, games }.
-export function pickWeekend(games) {
-  const list = Array.isArray(games) ? games : []
-  const range = weekendRange()
-  const current = list.filter((g) => inRange(g, range))
-  if (current.length) return { range, games: current }
-
-  const next = list
-    .filter((g) => g.dateObj != null && g.dateObj >= range.start.getTime())
-    .sort((a, b) => a.dateObj - b.dateObj)[0]
-  if (!next) return { range, games: [] }
-
-  const nextRange = weekendOf(next.dateObj)
-  return { range: nextRange, games: list.filter((g) => inRange(g, nextRange)) }
 }
 
 // Spiele nach Kalendertag gruppieren, aufsteigend nach Tag/Zeit.
@@ -65,10 +47,6 @@ export function dayLabel(date) {
 function rangeLabel(range) {
   const end = new Date(range.end.getTime() - DAY_MS)
   return `${pad(range.start.getDate())}.${pad(range.start.getMonth() + 1)}. – ${pad(end.getDate())}.${pad(end.getMonth() + 1)}.${end.getFullYear()}`
-}
-
-export function weekendLabel(range) {
-  return rangeLabel(range)
 }
 
 export function weekLabel(range) {

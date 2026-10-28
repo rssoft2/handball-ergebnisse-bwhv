@@ -49,27 +49,4 @@ function dayStart(ms) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
-function addDays(date, days) {
-  const d = new Date(date)
-  d.setDate(d.getDate() + days)
-  return d
-}
 
-// Zeitspanne des Wochenendes um ein Datum: Samstag 00:00 bis Montag 00:00
-// (exklusiv, deckt also Samstag + Sonntag ab).
-export function weekendOf(ms, now = new Date()) {
-  const date = ms == null ? dayStart(now.getTime()) : dayStart(ms)
-  const dow = date.getDay() // 0 = Sonntag … 6 = Samstag
-  const toSaturday = (6 - dow + 7) % 7
-  const saturday = addDays(date, dow === 0 ? -1 : toSaturday)
-  return { start: saturday, end: addDays(saturday, 2) }
-}
-
-// Aktuelles bzw. kommendes Wochenende: ist heute Samstag/Sonntag, dieses
-// Wochenende, sonst das nächste.
-export function weekendRange(now = new Date()) {
-  const today = dayStart(now.getTime())
-  const dow = today.getDay()
-  const saturday = dow === 0 ? addDays(today, -1) : addDays(today, (6 - dow + 7) % 7)
-  return { start: saturday, end: addDays(saturday, 2) }
-}

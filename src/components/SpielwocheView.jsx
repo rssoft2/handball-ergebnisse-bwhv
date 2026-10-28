@@ -97,7 +97,6 @@ export default function SpielwocheView({
   onSelectWeek,
   onPrevWeek,
   onNextWeek,
-  onOpenClub,
   onOpenReport,
   onOpenLive,
   onOpenLeague,
@@ -220,7 +219,7 @@ export default function SpielwocheView({
       })
       .sort((a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0))
     if (matched.length === 0) continue
-    groups.push({ clubId, clubName, games: matched, kind: 'club' })
+    groups.push({ clubId, clubName, games: matched })
   }
 
   for (const team of standaloneTeams) {
@@ -239,7 +238,7 @@ export default function SpielwocheView({
       })
       .sort((a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0))
     if (matched.length === 0) continue
-    groups.push({ clubId: `team:${team.leagueId || ''}:${teamName}`, clubName: teamName, games: matched, kind: 'team' })
+    groups.push({ clubId: `team:${team.leagueId || ''}:${teamName}`, clubName: teamName, games: matched })
   }
 
   if (groups.length === 0) {
@@ -262,39 +261,26 @@ export default function SpielwocheView({
             key={group.clubId}
             className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
           >
-            <div className="flex items-center gap-1 pr-1">
-              <button
-                type="button"
-                onClick={() =>
-                  setCollapsed((prev) => ({ ...prev, [group.clubId]: isOpen }))
-                }
-                aria-expanded={isOpen}
-                className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left transition hover:bg-surface2"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-head text-sm font-bold text-ink">
-                    {group.clubName}
-                  </div>
-                  <div className="truncate text-xs text-muted">
-                    {group.games.length} {group.games.length === 1 ? 'Spiel' : 'Spiele'}
-                  </div>
+            <button
+              type="button"
+              onClick={() =>
+                setCollapsed((prev) => ({ ...prev, [group.clubId]: isOpen }))
+              }
+              aria-expanded={isOpen}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition hover:bg-surface2"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-head text-sm font-bold text-ink">
+                  {group.clubName}
                 </div>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-faint transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {group.kind !== 'team' ? (
-                <button
-                  type="button"
-                  onClick={() => onOpenClub?.({ clubId: group.clubId, clubName: group.clubName })}
-                  aria-label={`${group.clubName} öffnen`}
-                  title="Vereinsansicht öffnen"
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-faint transition hover:bg-surface2 hover:text-ink"
-                >
-                  <ChevronRight />
-                </button>
-              ) : null}
-            </div>
+                <div className="truncate text-xs text-muted">
+                  {group.games.length} {group.games.length === 1 ? 'Spiel' : 'Spiele'}
+                </div>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-faint transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
 
             {isOpen ? (
               <div className="space-y-2.5 border-t border-line px-2 py-2.5 sm:px-3">

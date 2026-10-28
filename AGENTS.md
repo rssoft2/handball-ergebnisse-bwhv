@@ -35,13 +35,12 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
 - `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren (nur bei sichtbarem Tab)
 - `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 30 s aktualisieren (Live-Tab, nur bei sichtbarem Tab)
-- `src/hooks/useClubSchedule.js` — Spieltag-Spiele eines Vereins (`fetchClubSchedule`)
 - `src/hooks/useScheduleWeek.js` — Wochenspiele (`fetchScheduleByDate`) + Wochen-Navigation (Spielwoche-Tab)
 - `src/hooks/useLeagueScorers.js` — Torschützenliste einer Liga (alle Berichte; nur bei sichtbarem Screen)
-- `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, `weekendRange`/`weekendOf`, …)
-- `src/utils/spieltag.js` — Wochenend-/Wochen-Auswahl + Gruppierung (`pickWeekend`, `weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekendLabel`, `weekLabel`)
+- `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
+- `src/utils/spieltag.js` — Wochen-Auswahl + Gruppierung (`weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
-- `src/components/` — Header, LeagueList, LeagueDetail, ClubScreen, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
+- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -189,20 +188,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   gemeinsame Komponente `PlayerStats.jsx` (`TeamStats`, inkl. `isMilestonePlayer`; auch von
   `ReportStatsScreen` genutzt), Spieler aus `teams.home/away.players`. `normalizeTeam` filtert
   Offizielle (Buchstaben als `player_no`) heraus und sortiert nach Nummer.
-- **Spieltagsübersicht eines Vereins** (`ClubScreen`): `fetchClubSchedule(org, club)`
-  nutzt `cmd=pcu&c=<clubId>` – die Vereinsseite liefert je Liga genau die Partien des aktuellen
-  Spieltags (Feldaufbau wie `po`, daher `normalizeGame` + Liga-Info/`ageGroup`). Kurz gecacht
-  (`clubgames:${org}:${clubId}`, `CLUB_GAMES_TTL_MS` 5 min), aufsteigend nach `dateObj`.
-  `src/utils/spieltag.js`: `pickWeekend` wählt Sa+So des aktuellen Wochenendes, sonst das
-  Wochenende des nächsten anstehenden Spiels (`weekendRange`/`weekendOf` in `format.js`);
-  `groupByDay` gruppiert nach Tag, `dayLabel`/`weekendLabel` formatieren.
-  Einstieg: Tipp auf einen Verein (Favoriten-Kalender-Button bzw. Suchtreffer „Vereine")
-  → `ClubScreen` (App-State `clubNav`). Header im `ClubScreen`: Vereinstitel +
-  Stern zum Favorisieren. **Keine** Favoriten-Hervorhebung der Spiele (bewusst).
-  Kein Polling (nur manuell).
 - **Spielwoche** (Startseiten-Tab): alle Spiele der Favoriten-Vereine einer Kalenderwoche
-  (Mo–So, `SpielwocheView`), je Verein auf-/zuklappbar und nach Tag gruppiert (separater
-  Chevron-Button öffnet den `ClubScreen`). Wochen-Navigation per Pfeilen und Dropdown
+  (Mo–So, `SpielwocheView`), je Verein auf-/zuklappbar und nach Tag gruppiert. Wochen-Navigation per Pfeilen und Dropdown
   (Optionen aus `menu.dt.list` der API, `weeks` im Hook).
   `fetchScheduleByDate(org, region, dateIso)` lädt `cmd=po&do=<dateIso>`
   **landesweit und** mit `o=<region>` **nacheinander** (`REQUEST_GAP_MS`) und führt beide

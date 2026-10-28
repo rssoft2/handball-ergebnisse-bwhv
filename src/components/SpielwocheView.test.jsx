@@ -84,22 +84,6 @@ describe('SpielwocheView', () => {
     expect(screen.getByText('TSV Calw')).toBeInTheDocument()
   })
 
-  it('öffnet die Vereinsansicht über den Extra-Button', async () => {
-    const user = userEvent.setup()
-    const onOpenClub = vi.fn()
-    render(
-      <SpielwocheView
-        clubs={clubs}
-        status="ready"
-        data={data}
-        weekStart={weekStart}
-        onOpenClub={onOpenClub}
-      />,
-    )
-    await user.click(screen.getByRole('button', { name: 'HSG Ettlingen öffnen' }))
-    expect(onOpenClub).toHaveBeenCalledWith({ clubId: '1', clubName: 'HSG Ettlingen' })
-  })
-
   it('blättert zwischen Wochen', async () => {
     const user = userEvent.setup()
     const onPrevWeek = vi.fn()

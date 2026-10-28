@@ -3,7 +3,6 @@ import {
   CACHE_TTL_MS,
   CLUB_SEARCH_TTL_MS,
   CLUB_TEAMS_TTL_MS,
-  CLUB_GAMES_TTL_MS,
   MAX_CLUBS_PER_SEARCH,
   CLUB_FETCH_INTERVAL_MS,
   THROTTLE_RETRIES,
@@ -737,40 +736,6 @@ export async function fetchClubTeams(org, club, options = {}) {
     throw error
   }
   return teams
-}
-
-// Spieltag-/Spielplan-Spiele eines Vereins: alle Mannschaften, alle Spiele aus
-// der `pcu`-Vereinsseite (je Liga die aktuellen Partien). Mit Liga-Infos, aufsteigend
-// nach Tag/Zeit. Kurz gecacht, weil sich Scores/Live ändern.
-export async function fetchClubSchedule(org, club, force = false) {
-  const clubId = String(club?.clubId ?? '').trim()
-  if (!clubId) return []
-  return getCached(
-    `clubgames:${org}:${clubId}`,
-    async () => {
-      const payload = await getJson({ cmd: 'pcu', og: org, c: clubId })
-      const classes = payload.content?.classes ?? []
-      const byId = new Map()
-      for (const cls of classes) {
-        const ageGroup = ageGroupOf(trim(cls.gClassGender), cls.gClassAGsDesc)
-        const section = sectionOf(ageGroup)
-        for (const raw of cls.games ?? []) {
-          const game = normalizeGame(raw)
-          byId.set(game.id, {
-            ...game,
-            leagueId: String(cls.gClassID),
-            leagueName: trim(cls.gClassLname || cls.gClassSname),
-            leagueLevel: trim(cls.gClassLevelName),
-            leagueSection: section,
-            ageGroup,
-          })
-        }
-      }
-      return [...byId.values()].sort(byDateAsc)
-    },
-    force,
-    CLUB_GAMES_TTL_MS,
-  )
 }
 
 function clubNameMatchesQuery(clubName, query) {

@@ -74,7 +74,7 @@ function TeamRow({ team, onSelect, onToggle }) {
   )
 }
 
-function ClubRow({ club, onSelect, onToggle, onOpenClub, orderByLeague }) {
+function ClubRow({ club, onSelect, onToggle, orderByLeague }) {
   const [open, setOpen] = useState(false)
   const [state, setState] = useState({ status: 'idle', teams: [] })
 
@@ -116,27 +116,6 @@ function ClubRow({ club, onSelect, onToggle, onOpenClub, orderByLeague }) {
           <Chevron open={open} />
           <span className="truncate text-sm font-medium text-ink">{club.clubName}</span>
         </button>
-        <button
-          type="button"
-          onClick={() => onOpenClub?.(club)}
-          aria-label={`Spieltag von ${club.clubName}`}
-          title="Spieltag anzeigen"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-faint transition hover:bg-surface2 hover:text-accent active:scale-90"
-        >
-          <svg
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <path d="M3 10h18M8 2v4M16 2v4" />
-          </svg>
-        </button>
         <FavoriteStar active label={club.clubName} onToggle={() => onToggle(club)} />
       </div>
 
@@ -173,7 +152,7 @@ function ClubRow({ club, onSelect, onToggle, onOpenClub, orderByLeague }) {
   )
 }
 
-export default function FavoritesView({ favorites, leagues = [], onSelect, onToggleLeague, onToggleClub, onToggleTeam, onOpenClub }) {
+export default function FavoritesView({ favorites, leagues = [], onSelect, onToggleLeague, onToggleClub, onToggleTeam }) {
   const { leagues: favLeagues, clubs, teams } = favorites
   const empty = favLeagues.length === 0 && clubs.length === 0 && teams.length === 0
 
@@ -212,7 +191,6 @@ export default function FavoritesView({ favorites, leagues = [], onSelect, onTog
               club={club}
               onSelect={onSelect}
               onToggle={onToggleClub}
-              onOpenClub={onOpenClub}
               orderByLeague={orderByLeague}
             />
           ))}

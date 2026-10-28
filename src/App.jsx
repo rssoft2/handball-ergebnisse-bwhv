@@ -5,14 +5,12 @@ import { useAsync } from './hooks/useAsync.js'
 import { useFavorites } from './hooks/useFavorites.js'
 import { useReports } from './hooks/useReports.js'
 import { useLiveGames } from './hooks/useLiveGames.js'
-import { useClubSchedule } from './hooks/useClubSchedule.js'
 import { useScheduleWeek } from './hooks/useScheduleWeek.js'
 import { useLeagueScorers } from './hooks/useLeagueScorers.js'
 import { startOfDaysAgo } from './utils/format.js'
 import Header from './components/Header.jsx'
 import LeagueList from './components/LeagueList.jsx'
 import LeagueDetail from './components/LeagueDetail.jsx'
-import ClubScreen from './components/ClubScreen.jsx'
 import ReportStatsScreen from './components/ReportStatsScreen.jsx'
 import ReportTimelineScreen from './components/ReportTimelineScreen.jsx'
 import LiveScreen from './components/LiveScreen.jsx'
@@ -34,7 +32,6 @@ export default function App() {
   const [tab, setTab] = useState('browse')
   const [reportNav, setReportNav] = useState(null)
   const [liveNav, setLiveNav] = useState(null)
-  const [clubNav, setClubNav] = useState(null)
   const [statsNav, setStatsNav] = useState(false)
   const favorites = useFavorites()
 
@@ -59,12 +56,11 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
-  }, [selected, reportNav, liveNav, clubNav, statsNav])
+  }, [selected, reportNav, liveNav, statsNav])
 
   useEffect(() => {
     setReportNav(null)
     setLiveNav(null)
-    setClubNav(null)
     setStatsNav(false)
   }, [selected])
 
@@ -79,12 +75,10 @@ export default function App() {
 
   // Spielwoche: alle Spiele der Favoriten-Vereine (Mo–So), nur laden, wenn der
   // Spielwoche-Tab sichtbar ist.
-  const clubSchedule = useClubSchedule(ORG, clubNav, Boolean(clubNav))
   const scheduleWeek = useScheduleWeek(ORG, REGION, {
     enabled:
       tab === 'spielwoche' &&
       !selected &&
-      !clubNav &&
       !reportNav &&
       !liveNav &&
       ((favorites.favorites.clubs?.length ?? 0) > 0 ||
@@ -114,7 +108,6 @@ export default function App() {
   const showingDetail = Boolean(selected)
   const inReport = Boolean(reportNav)
   const inLive = Boolean(liveNav)
-  const inClub = Boolean(clubNav)
   const inScorers = Boolean(selected) && statsNav
   const data = detail.data
 
@@ -145,69 +138,54 @@ export default function App() {
                   name: `${reportNav.game.home} – ${reportNav.game.away}`,
                   subtitle: reportNav.kind === 'stats' ? 'Spielerstatistik' : 'Spielverlauf',
                 }
-              : inClub
+              : inScorers
                 ? {
-                    name: clubNav.clubName,
-                    subtitle: 'Spieltag',
+                    name: data?.meta?.name || 'Torschützenliste',
+                    subtitle: 'Torschützen',
                   }
-                : inScorers
-                  ? {
-                      name: data?.meta?.name || 'Torschützenliste',
-                      subtitle: 'Torschützen',
+                : showingDetail
+                  ? data?.meta
+                  : {
+                      name: 'Handball-Ergebnisse',
+                      subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
                     }
-                  : showingDetail
-                    ? data?.meta
-                    : {
-                        name: 'Handball-Ergebnisse',
-                        subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
-                      }
         }
         onBack={
           inLive
             ? () => setLiveNav(null)
             : inReport
               ? () => setReportNav(null)
-              : inClub
-                ? () => setClubNav(null)
-                : inScorers
-                  ? () => setStatsNav(false)
-                  : showingDetail
-                    ? () => setSelected('')
-                    : undefined
+              : inScorers
+                ? () => setStatsNav(false)
+                : showingDetail
+                  ? () => setSelected('')
+                  : undefined
         }
         onRefresh={
           inLive || inReport
             ? undefined
-            : inClub
-              ? clubSchedule.reload
-              : inScorers
-                ? scorers.reload
-                : showingDetail
-                  ? detail.reload
-                  : undefined
+            : inScorers
+              ? scorers.reload
+              : showingDetail
+                ? detail.reload
+                : undefined
         }
         loading={
-          detail.status === 'loading' ||
-          (inClub && clubSchedule.status === 'loading') ||
-          (inScorers && scorers.status === 'loading')
+          detail.status === 'loading' || (inScorers && scorers.status === 'loading')
         }
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
         starred={
-          inClub
-            ? favorites.isClubFavorite(clubNav.clubName)
-            : !inReport && !inLive && showingDetail
-              ? favorites.isLeagueFavorite(selected)
-              : undefined
+          !inReport && !inLive && showingDetail
+            ? favorites.isLeagueFavorite(selected)
+            : undefined
         }
         onToggleStar={
-          inClub
-            ? () => favorites.toggleClub(clubNav)
-            : !inReport && !inLive && showingDetail
-              ? () => favorites.toggleLeague(currentLeague)
-              : undefined
+          !inReport && !inLive && showingDetail
+            ? () => favorites.toggleLeague(currentLeague)
+            : undefined
         }
-        starLabel={inClub ? clubNav.clubName : currentLeague?.name || data?.meta?.name}
+        starLabel={currentLeague?.name || data?.meta?.name}
       />
 
       <main className="mx-auto max-w-3xl px-4 py-4">
@@ -227,12 +205,6 @@ export default function App() {
               favoriteTeams={favorites.favoriteTeams}
             />
           )
-        ) : inClub ? (
-          <ClubScreen
-            schedule={clubSchedule}
-            onOpenReport={(game, kind) => setReportNav({ game, kind })}
-            onOpenLive={(game) => setLiveNav(game)}
-          />
         ) : inScorers ? (
           <LeagueScorersScreen
             status={scorers.status}
@@ -278,7 +250,6 @@ export default function App() {
             onSelectWeek={scheduleWeek.setWeek}
             onPrevWeek={scheduleWeek.prevWeek}
             onNextWeek={scheduleWeek.nextWeek}
-            onOpenClub={(club) => setClubNav(club)}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLeague={(leagueId) => {
               if (!leagueId) return
