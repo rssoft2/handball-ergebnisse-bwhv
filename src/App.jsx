@@ -82,7 +82,7 @@ export default function App() {
   const clubSchedule = useClubSchedule(ORG, clubNav, Boolean(clubNav))
   const scheduleWeek = useScheduleWeek(ORG, REGION, {
     enabled:
-      tab === 'spieltag' &&
+      tab === 'spielwoche' &&
       !selected &&
       !clubNav &&
       !reportNav &&
@@ -283,7 +283,7 @@ export default function App() {
             onOpenLeague={(leagueId) => {
               if (!leagueId) return
               setSelected(leagueId)
-              setTab('spieltag')
+              setTab('spielwoche')
             }}
             isLeagueFavorite={favorites.isLeagueFavorite}
             isClubFavorite={favorites.isClubFavorite}

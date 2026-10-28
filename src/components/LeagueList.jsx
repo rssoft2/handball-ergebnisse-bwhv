@@ -112,7 +112,7 @@ function Tabs({ tab, onChange, liveCount }) {
   const items = [
     { id: 'browse', label: 'Auswahl' },
     { id: 'live', label: 'Live', count: liveCount },
-    { id: 'spieltag', label: 'Spielwoche' },
+    { id: 'spielwoche', label: 'Spielwoche' },
     { id: 'favorites', label: 'Favoriten' },
   ]
   return (
@@ -272,7 +272,7 @@ export default function LeagueList({
           onOpenLive={onOpenLive}
           onOpenLeague={onOpenLeague}
         />
-      ) : tab === 'spieltag' ? (
+      ) : tab === 'spielwoche' ? (
         <SpielwocheView
           clubs={favorites.clubs}
           teams={favorites.teams}

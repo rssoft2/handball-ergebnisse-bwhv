@@ -156,7 +156,7 @@ export default function SpielwocheView({
         value={currentIso}
         onChange={(event) => onSelectWeek?.(event.target.value)}
         aria-label="Woche auswählen"
-        className="mx-auto w-auto max-w-[12rem] shrink cursor-pointer truncate rounded-lg border border-line bg-surface px-2 py-1 text-center text-sm font-medium tabular-nums text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accentsoft"
+        className="mx-auto w-auto max-w-48 shrink cursor-pointer truncate rounded-lg border border-line bg-surface px-2 py-1 text-center text-sm font-medium tabular-nums text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accentsoft"
       >
         {weekOptions.map((option) => (
           <option key={option.iso} value={option.iso}>
