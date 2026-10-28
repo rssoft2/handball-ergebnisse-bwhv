@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ORG, REGION } from './config.js'
+import { APP_VERSION, ORG, REGION } from './config.js'
 import { fetchBwhvLeagues, fetchLeague } from './api/h4a.js'
 import { useAsync } from './hooks/useAsync.js'
 import { useFavorites } from './hooks/useFavorites.js'
@@ -268,7 +268,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-3xl px-4 py-6 text-center text-xs text-faint">
         Daten: handball4all.de · inoffizielle Ansicht
-        <br />© 2026 rssoft2 · v1.14.0
+        <br />© 2026 rssoft2 · v{APP_VERSION}
       </footer>
     </div>
   )

@@ -30,10 +30,48 @@ function splitTeamNumber(norm) {
   return match ? { base: match[1], num: match[2] } : { base: norm, num: null }
 }
 
+function tokenize(value) {
+  const tokens = String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .split(/[^A-Z0-9]+/)
+    .filter(Boolean)
+  if (tokens.length > 1 && /^[0-9]+$/.test(tokens[tokens.length - 1])) tokens.pop()
+  return tokens
+}
+
+// Bei gleicher Teileanzahl darf jedes Teil eine Kurzform (Präfix) sein:
+// "SG Sulzf/Brett" ↔ "SG Sulzfeld/Bretten".
+function tokensMatchAsPrefixes(a, b) {
+  if (a.length !== b.length) return false
+  return a.every((token, index) => {
+    const other = b[index]
+    return token === other || token.startsWith(other) || other.startsWith(token)
+  })
+}
+
+// Vereinskürzel am Anfang ("TV", "TSV", "HSG" …) muss übereinstimmen, sonst
+// würde z. B. "TV Malsch" auch auf "TSV Rot-Malsch" passen (Teilsequenz).
+function clubPrefix(value) {
+  const match = String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .match(/^[A-Z]+/)
+  return match ? match[0] : ''
+}
+
 function favoriteMatches(favorite, name) {
   const fav = String(favorite ?? '').trim()
   if (!fav || !name) return false
   if (name.toLowerCase().includes(fav.toLowerCase())) return true
+
+  const favPrefix = clubPrefix(fav)
+  const namePrefix = clubPrefix(name)
+  if (favPrefix && namePrefix && favPrefix !== namePrefix) return false
 
   const f = normalizeTeamName(fav)
   const n = normalizeTeamName(name)
@@ -42,7 +80,13 @@ function favoriteMatches(favorite, name) {
   const fa = splitTeamNumber(f)
   const na = splitTeamNumber(n)
   if (fa.base.length < 3 || na.base.length < 3) return false
-  const baseMatches = isSubsequence(fa.base, na.base) || isSubsequence(na.base, fa.base)
+
+  const favTokens = tokenize(fav)
+  const nameTokens = tokenize(name)
+  const baseMatches =
+    favTokens.length === nameTokens.length
+      ? tokensMatchAsPrefixes(favTokens, nameTokens)
+      : isSubsequence(fa.base, na.base) || isSubsequence(na.base, fa.base)
   if (!baseMatches) return false
 
   // Ohne Nummer im Favoriten gilt der ganze Verein (alle Mannschaften).

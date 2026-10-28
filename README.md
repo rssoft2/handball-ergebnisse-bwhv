@@ -11,4 +11,4 @@
 |  8 | Vereins-Logos | 7 |
 |  9 | Auswahl der Spielwoche | 3 | Fertig
 | 10 | Navigation Tabelle/Team --> Team-Spielplan |  |
-| 11 | Spielwoche auch für Favoriten-Teams |  |
+| 11 | Spielwoche auch für Favoriten-Teams |  | Fertig

@@ -46,4 +46,35 @@ describe('isFavoriteTeam', () => {
   it('matcht keine fremden Vereine', () => {
     expect(isFavoriteTeam('TSG Wiesloch', ['SG Pforzheim/Eutingen'])).toBe(false)
   })
+
+  it('matcht keinen Verein mit anderem Kürzel und ähnlichem Ortsnamen', () => {
+    expect(isFavoriteTeam('TSV Rot-Malsch', ['TV Malsch'])).toBe(false)
+    expect(isFavoriteTeam('TSV Germania Malsch', ['TV Malsch'])).toBe(false)
+  })
+
+  it('matcht TV Malsch weiterhin inkl. Mannschaftsnummer', () => {
+    expect(isFavoriteTeam('TV Malsch', ['TV Malsch'])).toBe(true)
+    expect(isFavoriteTeam('TV Malsch 2', ['TV Malsch'])).toBe(true)
+    expect(isFavoriteTeam('TV Malsch', ['TV Malsch 2'])).toBe(false)
+  })
+
+  it('matcht SG Sulzfeld/Bretten mit der Kurzform SG Sulzf/Brett', () => {
+    expect(isFavoriteTeam('SG Sulzf/Brett', ['SG Sulzfeld/Bretten'])).toBe(true)
+    expect(isFavoriteTeam('SG Sulzfeld/Bretten', ['SG Sulzf/Brett'])).toBe(true)
+    expect(isFavoriteTeam('SG Sulzf/Brett 2', ['SG Sulzfeld/Bretten'])).toBe(true)
+  })
+
+  it('matcht SG Sulzfeld/Bretten nicht mit TV Bretten', () => {
+    expect(isFavoriteTeam('TV Bretten', ['SG Sulzfeld/Bretten'])).toBe(false)
+    expect(isFavoriteTeam('TV Bretten', ['SG Sulzf/Brett'])).toBe(false)
+    expect(isFavoriteTeam('SG Sulzfeld/Bretten', ['TV Bretten'])).toBe(false)
+    expect(isFavoriteTeam('SG Sulzf/Brett', ['TV Bretten'])).toBe(false)
+  })
+
+  it('matcht weiterhin Kurzformen mit gleichem Kürzel', () => {
+    expect(isFavoriteTeam('HSG DiMa', ['HSG Dielheim/Malschenberg'])).toBe(true)
+    expect(
+      isFavoriteTeam('SG Heidel/Helm', ['SG Heidelsheim/Helmsheim/Gondelsheim']),
+    ).toBe(true)
+  })
 })

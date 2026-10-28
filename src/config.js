@@ -1,3 +1,6 @@
+// App-Version (Anzeige im Footer)
+export const APP_VERSION = '1.14.1'
+
 export const API_BASE = 'https://spo.handball4all.de/service/if_g_json.php'
 
 // Es werden ausschließlich Daten des Baden-Württembergischen HV geladen:
