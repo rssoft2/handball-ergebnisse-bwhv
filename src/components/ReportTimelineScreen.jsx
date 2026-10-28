@@ -83,17 +83,17 @@ export default function ReportTimelineScreen({ report, game, favoriteTeams }) {
                   <>
                     <span className={`font-medium ${isMilestone ? 'text-accent' : 'text-ink'}`}>
                       {event.name}
-                    </span>{' '}
+                    </span>
+                    {isMilestone ? (
+                      <span className="ml-1 inline-block whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-bold text-accentink">
+                        {milestone.rank}.&nbsp;Tor
+                      </span>
+                    ) : null}{' '}
                     <span className="text-faint">
                       ({event.nr}
                       {event.nr ? ', ' : ''}
                       {label})
                     </span>
-                    {isMilestone ? (
-                      <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-bold text-accentink">
-                        {milestone.rank}. Tor
-                      </span>
-                    ) : null}
                   </>
                 )}
               </span>

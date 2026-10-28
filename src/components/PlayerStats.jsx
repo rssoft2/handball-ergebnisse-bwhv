@@ -56,8 +56,8 @@ export function TeamStats({ team, milestone, favorite }) {
                 <td className="py-1 text-ink">
                   <span className={milestoneRow ? 'font-bold text-accent' : ''}>{p.name}</span>
                   {milestoneRow ? (
-                    <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-bold text-accentink">
-                      {milestone.rank}. Tor
+                    <span className="ml-1 inline-block whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-bold text-accentink">
+                      {milestone.rank}.&nbsp;Tor
                     </span>
                   ) : null}
                 </td>
