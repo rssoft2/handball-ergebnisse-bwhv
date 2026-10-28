@@ -64,7 +64,9 @@ Standings rows include `pointsPlus`/`pointsMinus` (shown as `plus:minus`). Games
 **names only** (no team ids) plus `gHomePoints`/`gGuestPoints`. `normalizeLeague` splits
 into `live`, `played` (done, newest first) and `upcoming`. Spiele tragen `dateObj` als
 **Zeitstempel (Zahl)**, damit er die JSON-Zwischenspeicherung übersteht (sonst `Date` →
-String → `getTime`-Crash). Cache prefix `h4a:cache:v7`;
+String → `getTime`-Crash). Spiele enthalten die Halle (`venue`, `street`, `postal`, `town`
+aus `gGymnasium*`); `MatchCard` zeigt die vollständige Adresse als Google-Maps-Link
+(Navigation). Cache prefix `h4a:cache:v7`;
 theme persisted under `h4a:theme`. All UI text is German.
 
 ### Live-Ticker

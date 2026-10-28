@@ -31,6 +31,17 @@ describe('MatchCard', () => {
     expect(onOpenLeague).toHaveBeenCalledWith('123')
   })
 
+  it('shows the gym with full address as navigation link', () => {
+    render(<MatchCard game={mockGamePlayed} />)
+    const link = screen.getByRole('link', {
+      name: /Sporthalle, Musterstraße 1, 76275 Ettlingen/,
+    })
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link.getAttribute('href')).toBe(
+      'https://www.google.com/maps/dir/?api=1&destination=Sporthalle%2C%20Musterstra%C3%9Fe%201%2C%2076275%2C%20Ettlingen',
+    )
+  })
+
   it('shows PDF link for finished game with report', () => {
     render(<MatchCard game={mockGamePlayed} />)
     const link = screen.getByRole('link', { name: 'PDF' })

@@ -15,10 +15,25 @@ function TeamName({ name, favorite }) {
   )
 }
 
+function mapsUrl(game) {
+  const destination = [game.venue, game.street, game.postal, game.town]
+    .filter(Boolean)
+    .join(', ')
+  return destination
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`
+    : ''
+}
+
 export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLive, onOpenLeague }) {
   const homeFav = isFavoriteTeam(game.home, favoriteTeams)
   const awayFav = isFavoriteTeam(game.away, favoriteTeams)
   const isFav = homeFav || awayFav
+
+  const address = [game.street, [game.postal, game.town].filter(Boolean).join(' ')]
+    .filter(Boolean)
+    .join(', ')
+  const place = [game.venue, address].filter(Boolean).join(', ')
+  const navUrl = mapsUrl(game)
 
   const result = game.done ? `${game.homeGoals}:${game.awayGoals}` : '–:–'
   const halftime =
@@ -67,11 +82,32 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
         </div>
       </div>
 
-      {(game.venue || game.town) && (
-        <div className="mt-2 truncate text-center text-xs text-faint">
-          {[game.venue, game.town].filter(Boolean).join(', ')}
+      {place ? (
+        <div className="mt-2 text-center text-xs text-faint">
+          <a
+            href={navUrl}
+            target="_blank"
+            rel="noreferrer"
+            title="Navigation starten"
+            className="inline-flex items-center justify-center gap-1 hover:text-accent hover:underline"
+          >
+            <svg
+              className="h-3.5 w-3.5 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span>{place}</span>
+          </a>
         </div>
-      )}
+      ) : null}
 
       {game.live && game.token ? (
         <div className="mt-2 flex items-center justify-center">

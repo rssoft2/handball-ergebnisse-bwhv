@@ -271,6 +271,7 @@ function normalizeGame(game) {
     venue: trim(game.gGymnasiumName),
     town: trim(game.gGymnasiumTown),
     street: trim(game.gGymnasiumStreet),
+    postal: trim(game.gGymnasiumPostal),
     live,
     token: trim(game.gToken),
     appid: trim(game.gAppid),
