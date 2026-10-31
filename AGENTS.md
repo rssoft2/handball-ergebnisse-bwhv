@@ -40,7 +40,8 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
 - `src/utils/spieltag.js` — Wochen-Auswahl + Gruppierung (`weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
-- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
+- `src/utils/teamSchedule.js` — Spielplan eines Teams aus den Liga-Spielen filtern (`scheduleForTeam`)
+- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, TeamScheduleScreen, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -62,11 +63,13 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 (`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
 Standings rows include `pointsPlus`/`pointsMinus` (shown as `plus:minus`). Games have
 **names only** (no team ids) plus `gHomePoints`/`gGuestPoints`. `normalizeLeague` splits
-into `live`, `played` (done, newest first) and `upcoming`. Spiele tragen `dateObj` als
+into `live`, `played` (done, newest first) and `upcoming`. `teamNameMap` ordnet die
+Kurznamen der Spiele den Langnamen der Tabelle zu (`Kurzname → Langname`, JSON-taugliches
+Objekt; Basis für Form und Team-Spielplan). Spiele tragen `dateObj` als
 **Zeitstempel (Zahl)**, damit er die JSON-Zwischenspeicherung übersteht (sonst `Date` →
 String → `getTime`-Crash). Spiele enthalten die Halle (`venue`, `street`, `postal`, `town`
 aus `gGymnasium*`); `MatchCard` zeigt die vollständige Adresse als Google-Maps-Link
-(Navigation). Cache prefix `h4a:cache:v7`;
+(Navigation). Cache prefix `h4a:cache:v8`;
 theme persisted under `h4a:theme`. All UI text is German.
 
 ### Live-Ticker
@@ -108,6 +111,11 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
   Tabelle, Kommende Spiele). Letzte Spiele **absteigend** (neueste oben), initial nur die
   letzten 7 Tage, Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
+- **Team-Spielplan**: Klick auf einen Teamnamen in der Tabelle öffnet `TeamScheduleScreen`
+  (Header: Teamname, Zurück zur Liga) mit „Kommende Spiele" (live + upcoming) und „Ergebnisse".
+  `scheduleForTeam` filtert die Spiele der aktuellen Liga über `teamNameMap` (Spiele nutzen
+  Kurznamen, die Tabelle Langnamen), dedupliziert per `gID` und sortiert. Kein zusätzlicher
+  API-Call; der Screen kann von dort Bericht/Live-Ticker öffnen und kehrt dorthin zurück.
 - **Favoriten** (Ligen, Vereine, Mannschaften) **pro Gerät** in `localStorage` unter
   `h4a:favorites:v1` — kein Backend/Login, nicht geräteübergreifend. `src/utils/favorites.js`
   (pure: `load/save/toggle` + `isLeagueFavorite`/`isClubFavorite`/`isTeamFavorite`/

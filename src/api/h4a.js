@@ -28,7 +28,7 @@ async function mapWithConcurrency(items, limit, fn) {
   return out
 }
 
-const CACHE_PREFIX = 'h4a:cache:v7'
+const CACHE_PREFIX = 'h4a:cache:v8'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -385,6 +385,7 @@ function normalizeLeague(payload) {
     standings,
     played,
     formByTeam,
+    teamNameMap: Object.fromEntries(teamNameMap),
     live: matches.filter((m) => m.status === 'live').sort(byDateAsc),
     upcoming: matches.filter((m) => m.status === 'upcoming').sort(byDateAsc),
   }

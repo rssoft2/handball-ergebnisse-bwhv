@@ -25,7 +25,7 @@ function FormCell({ form }) {
   )
 }
 
-export default function StandingsTable({ rows, favoriteTeams, formByTeam = {} }) {
+export default function StandingsTable({ rows, favoriteTeams, formByTeam = {}, onSelectTeam }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
       <table className="w-full border-collapse text-sm">
@@ -46,6 +46,9 @@ export default function StandingsTable({ rows, favoriteTeams, formByTeam = {} })
         <tbody>
           {rows.map((row) => {
             const fav = isFavoriteTeam(row.name, favoriteTeams)
+            const teamClass = `max-w-[10rem] truncate text-left sm:max-w-none ${
+              fav ? 'font-bold text-favink' : 'font-medium text-ink'
+            }`
             return (
               <tr
                 key={row.teamId}
@@ -56,13 +59,21 @@ export default function StandingsTable({ rows, favoriteTeams, formByTeam = {} })
                 <td className="px-2 py-2.5 text-left font-semibold tabular-nums text-muted">
                   {row.rank}
                 </td>
-                <td
-                  className={`max-w-[10rem] truncate px-2 py-2.5 text-left sm:max-w-none ${
-                    fav ? 'font-bold text-favink' : 'font-medium text-ink'
-                  }`}
-                  title={row.name}
-                >
-                  {row.name}
+                <td className="p-0">
+                  {onSelectTeam ? (
+                    <button
+                      type="button"
+                      onClick={() => onSelectTeam(row.name)}
+                      className={`block w-full cursor-pointer px-2 py-2.5 transition hover:text-accent focus-visible:text-accent focus-visible:underline ${teamClass}`}
+                      title={row.name}
+                    >
+                      {row.name}
+                    </button>
+                  ) : (
+                    <div className={`px-2 py-2.5 ${teamClass}`} title={row.name}>
+                      {row.name}
+                    </div>
+                  )}
                 </td>
                 <td className="px-2 py-2.5 text-center tabular-nums text-muted">{row.played}</td>
                 <td className="hidden px-2 py-2.5 text-center tabular-nums text-emerald-600 sm:table-cell">

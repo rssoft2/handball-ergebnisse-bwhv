@@ -26,6 +26,7 @@ export default function LeagueDetail({
   onOpenReport,
   onOpenLive,
   onOpenScorers,
+  onOpenTeam,
 }) {
   if (status === 'loading' && !data) {
     return <StateMessage status="loading" />
@@ -75,6 +76,7 @@ export default function LeagueDetail({
             rows={data.standings}
             favoriteTeams={favoriteTeams}
             formByTeam={data.formByTeam}
+            onSelectTeam={onOpenTeam}
           />
         ) : (
           <StateMessage emptyText="Keine Tabelle verfügbar." />

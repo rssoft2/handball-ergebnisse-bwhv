@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import StandingsTable from './StandingsTable.jsx'
 import { mockStandings } from '../test/fixtures.js'
 
@@ -26,5 +27,22 @@ describe('StandingsTable', () => {
     render(<StandingsTable rows={mockStandings} formByTeam={formByTeam} favoriteTeams={['HSG Ettlingen']} />)
     const team = screen.getByText('HSG Ettlingen')
     expect(team).toHaveClass('font-bold')
+  })
+
+  it('opens the team schedule when clicking a team name', async () => {
+    const user = userEvent.setup()
+    const onSelectTeam = vi.fn()
+    render(
+      <StandingsTable
+        rows={mockStandings}
+        formByTeam={formByTeam}
+        favoriteTeams={[]}
+        onSelectTeam={onSelectTeam}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'HSG Ettlingen' }))
+
+    expect(onSelectTeam).toHaveBeenCalledWith('HSG Ettlingen')
   })
 })
