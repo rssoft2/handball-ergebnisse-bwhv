@@ -1,5 +1,5 @@
 // App-Version (Anzeige im Footer)
-export const APP_VERSION = '1.14.2'
+export const APP_VERSION = '1.14.3'
 
 export const API_BASE = 'https://spo.handball4all.de/service/if_g_json.php'
 

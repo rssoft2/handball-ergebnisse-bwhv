@@ -3,9 +3,13 @@ import { CardsCell } from './ReportCards.jsx'
 // Die Berichtsspalte „7m/ Tore" liefert "Versuche/verwandelte" (z. B. "6/5");
 // angezeigt als "verwandelte/Versuche", also z. B. "5/6".
 function sevenValue(seven) {
-  const m = String(seven ?? '').match(/^(\d+)\s*\/\s*(\d+)$/)
-  if (m) return `${m[2]}/${m[1]}`
   if (seven == null || seven === '') return ''
+  const m = String(seven).match(/^(\d+)\s*\/\s*(\d+)$/)
+  if (m) {
+    if (Number(m[1]) === 0 && Number(m[2]) === 0) return ''
+    return `${m[2]}/${m[1]}`
+  }
+  if (Number(seven) === 0) return ''
   return seven
 }
 
