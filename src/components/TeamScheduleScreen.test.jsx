@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import TeamScheduleScreen from './TeamScheduleScreen.jsx'
 import { mockGameLive, mockGamePlayed, mockGameUpcoming } from '../test/fixtures.js'
 
@@ -28,5 +29,23 @@ describe('TeamScheduleScreen', () => {
     render(<TeamScheduleScreen data={data} teamName="Unbekannt" favoriteTeams={[]} />)
 
     expect(screen.getByText('Keine Spiele für dieses Team gefunden.')).toBeInTheDocument()
+  })
+
+  it('opens the team scorers list', async () => {
+    const user = userEvent.setup()
+    const onOpenScorers = vi.fn()
+
+    render(
+      <TeamScheduleScreen
+        data={data}
+        teamName="HSG Ettlingen"
+        favoriteTeams={[]}
+        onOpenScorers={onOpenScorers}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Torschützenliste/ }))
+
+    expect(onOpenScorers).toHaveBeenCalledTimes(1)
   })
 })

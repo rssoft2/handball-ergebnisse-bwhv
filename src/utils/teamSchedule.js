@@ -3,7 +3,7 @@ import { isFavoriteTeam } from './teams.js'
 const byDateAsc = (a, b) => (a.dateObj ?? 0) - (b.dateObj ?? 0)
 const byDateDesc = (a, b) => (b.dateObj ?? 0) - (a.dateObj ?? 0)
 
-function teamMatches(name, teamName, nameMap) {
+export function teamMatches(name, teamName, nameMap) {
   if (!name) return false
   const mapped = nameMap?.[name]
   if (mapped) return mapped === teamName

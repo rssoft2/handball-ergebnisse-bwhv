@@ -21,6 +21,7 @@ export default function TeamScheduleScreen({
   favoriteTeams,
   onOpenReport,
   onOpenLive,
+  onOpenScorers,
 }) {
   const schedule = useMemo(() => scheduleForTeam(data, teamName), [data, teamName])
   const coming = [...schedule.live, ...schedule.upcoming]
@@ -28,12 +29,30 @@ export default function TeamScheduleScreen({
 
   if (!data) return null
 
+  const scorersButton = onOpenScorers ? (
+    <button
+      type="button"
+      onClick={onOpenScorers}
+      className="flex w-full items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 text-left shadow-sm transition hover:bg-surface2 active:scale-[0.99]"
+    >
+      <span className="font-head text-sm font-semibold text-ink">Torschützenliste</span>
+      <span className="text-xs text-muted">Team-Statistik ›</span>
+    </button>
+  ) : null
+
   if (total === 0) {
-    return <StateMessage emptyText="Keine Spiele für dieses Team gefunden." />
+    return (
+      <div className="space-y-8">
+        {scorersButton}
+        <StateMessage emptyText="Keine Spiele für dieses Team gefunden." />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-8">
+      {scorersButton}
+
       <Section
         title="Kommende Spiele"
         subtitle={schedule.live.length > 0 ? `${schedule.live.length} live` : undefined}

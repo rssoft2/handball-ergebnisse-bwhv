@@ -30,6 +30,7 @@ export default function LeagueScorersScreen({
   error,
   onReload,
   favoriteTeams,
+  teamName = '',
 }) {
   if (status === 'loading' && !data) {
     return (
@@ -46,6 +47,7 @@ export default function LeagueScorersScreen({
 
   if (!data) return null
 
+  const teamView = Boolean(teamName)
   const scorers = data.scorers ?? []
   const basis =
     data.withReport < data.totalGames
@@ -57,7 +59,13 @@ export default function LeagueScorersScreen({
       <ProgressBar progress={progress} />
 
       {data.withReport === 0 ? (
-        <StateMessage emptyText="Für diese Liga liegen noch keine auswertbaren Spielberichte vor." />
+        <StateMessage
+          emptyText={
+            teamView
+              ? 'Für dieses Team liegen noch keine auswertbaren Spielberichte vor.'
+              : 'Für diese Liga liegen noch keine auswertbaren Spielberichte vor.'
+          }
+        />
       ) : scorers.length === 0 ? (
         <StateMessage
           emptyText={
@@ -76,13 +84,19 @@ export default function LeagueScorersScreen({
           </div>
 
           <div className="-mx-1 overflow-x-auto px-1">
-            <table className="w-full min-w-[320px] text-xs sm:text-sm">
+            <table
+              className={`w-full ${teamView ? 'min-w-[280px]' : 'min-w-[320px]'} text-xs sm:text-sm`}
+            >
               <thead>
                 <tr className="text-[10px] uppercase tracking-wide text-faint sm:text-[11px]">
                   <th className="py-1 pr-1 text-right font-semibold sm:pr-2">#</th>
                   <th className="py-1 pr-3 text-right font-semibold sm:pr-4">Nr.</th>
                   <th className="py-1 text-left font-semibold">Spieler</th>
-                  <th className="hidden py-1 pl-1 text-left font-semibold sm:table-cell sm:pl-2">Team</th>
+                  {teamView ? null : (
+                    <th className="hidden py-1 pl-1 text-left font-semibold sm:table-cell sm:pl-2">
+                      Team
+                    </th>
+                  )}
                   <th className="py-1 pl-1 text-right font-semibold sm:pl-2" title="Spiele">
                     Sp
                   </th>
@@ -97,28 +111,32 @@ export default function LeagueScorersScreen({
               </thead>
               <tbody>
                 {scorers.map((p, i) => {
-                  const fav = isFavoriteTeam(p.team, favoriteTeams)
+                  const fav = !teamView && isFavoriteTeam(p.team, favoriteTeams)
                   return (
                     <tr key={`${p.team}|${p.nr}|${p.name}`} className="border-t border-line">
                       <td className="py-1 pr-1 text-right tabular-nums text-faint sm:pr-2">{i + 1}</td>
                       <td className="py-1 pr-3 text-right tabular-nums text-muted sm:pr-4">{p.nr}</td>
                       <td className="py-1 font-medium text-ink">
                         <span className="block max-w-[9rem] truncate sm:max-w-none">{p.name}</span>
-                        <span
-                          className={`block text-[10px] sm:hidden ${
-                            fav ? 'font-medium text-favink' : 'text-muted'
+                        {teamView ? null : (
+                          <span
+                            className={`block text-[10px] sm:hidden ${
+                              fav ? 'font-medium text-favink' : 'text-muted'
+                            }`}
+                          >
+                            {p.team}
+                          </span>
+                        )}
+                      </td>
+                      {teamView ? null : (
+                        <td
+                          className={`hidden py-1 pl-1 text-xs sm:table-cell sm:pl-2 ${
+                            fav ? 'font-semibold text-favink' : 'text-muted'
                           }`}
                         >
                           {p.team}
-                        </span>
-                      </td>
-                      <td
-                        className={`hidden py-1 pl-1 text-xs sm:table-cell sm:pl-2 ${
-                          fav ? 'font-semibold text-favink' : 'text-muted'
-                        }`}
-                      >
-                        {p.team}
-                      </td>
+                        </td>
+                      )}
                       <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">
                         {p.games}
                       </td>

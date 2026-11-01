@@ -35,6 +35,7 @@ export default function App() {
   const [liveNav, setLiveNav] = useState(null)
   const [statsNav, setStatsNav] = useState(false)
   const [teamNav, setTeamNav] = useState(null)
+  const [teamStatsNav, setTeamStatsNav] = useState(false)
   const favorites = useFavorites()
 
   useEffect(() => {
@@ -58,13 +59,14 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
-  }, [selected, reportNav, liveNav, statsNav, teamNav])
+  }, [selected, reportNav, liveNav, statsNav, teamNav, teamStatsNav])
 
   useEffect(() => {
     setReportNav(null)
     setLiveNav(null)
     setStatsNav(false)
     setTeamNav(null)
+    setTeamStatsNav(false)
   }, [selected])
 
   const leagues = useAsync(() => fetchBwhvLeagues(ORG, REGION), [ORG, REGION])
@@ -90,6 +92,13 @@ export default function App() {
 
   // Liga-Statistik (Torschützenliste): alle Berichte der gewählten Liga laden.
   const scorers = useLeagueScorers(ORG, selected, Boolean(selected) && statsNav)
+  // Team-Statistik: nur die Berichte der Spiele des gewählten Teams.
+  const teamScorers = useLeagueScorers(
+    ORG,
+    selected,
+    Boolean(selected) && teamStatsNav,
+    teamNav,
+  )
 
   // Die zuletzt gespielten Partien (wie im Liga-Detail sichtbar) im Hintergrund
   // als Berichte vorladen.
@@ -111,7 +120,8 @@ export default function App() {
   const showingDetail = Boolean(selected)
   const inReport = Boolean(reportNav)
   const inLive = Boolean(liveNav)
-  const inTeam = Boolean(selected) && Boolean(teamNav)
+  const inTeamStats = Boolean(selected) && Boolean(teamNav) && teamStatsNav
+  const inTeam = Boolean(selected) && Boolean(teamNav) && !inTeamStats
   const inScorers = Boolean(selected) && statsNav
   const data = detail.data
 
@@ -142,58 +152,72 @@ export default function App() {
                   name: `${reportNav.game.home} – ${reportNav.game.away}`,
                   subtitle: reportNav.kind === 'stats' ? 'Spielerstatistik' : 'Spielverlauf',
                 }
-              : inTeam
+              : inTeamStats
                 ? {
                     name: teamNav,
                     logoName: teamNav,
-                    subtitle: data?.meta?.name ? `Spielplan · ${data.meta.name}` : 'Spielplan',
+                    subtitle: data?.meta?.name
+                      ? `Torschützen · ${data.meta.name}`
+                      : 'Torschützen',
                   }
-                : inScorers
+                : inTeam
                   ? {
-                      name: data?.meta?.name || 'Torschützenliste',
-                      subtitle: 'Torschützen',
+                      name: teamNav,
+                      logoName: teamNav,
+                      subtitle: data?.meta?.name ? `Spielplan · ${data.meta.name}` : 'Spielplan',
                     }
-                  : showingDetail
-                    ? data?.meta
-                    : {
-                      name: 'Handball-Ergebnisse',
-                      subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
-                    }
+                  : inScorers
+                    ? {
+                        name: data?.meta?.name || 'Torschützenliste',
+                        subtitle: 'Torschützen',
+                      }
+                    : showingDetail
+                      ? data?.meta
+                      : {
+                          name: 'Handball-Ergebnisse',
+                          subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
+                        }
         }
         onBack={
           inLive
             ? () => setLiveNav(null)
             : inReport
               ? () => setReportNav(null)
-              : inTeam
-                ? () => setTeamNav(null)
-                : inScorers
-                  ? () => setStatsNav(false)
-                  : showingDetail
-                    ? () => setSelected('')
-                    : undefined
+              : inTeamStats
+                ? () => setTeamStatsNav(false)
+                : inTeam
+                  ? () => setTeamNav(null)
+                  : inScorers
+                    ? () => setStatsNav(false)
+                    : showingDetail
+                      ? () => setSelected('')
+                      : undefined
         }
         onRefresh={
           inLive || inReport
             ? undefined
-            : inScorers
-              ? scorers.reload
-              : showingDetail
-                ? detail.reload
-                : undefined
+            : inTeamStats
+              ? teamScorers.reload
+              : inScorers
+                ? scorers.reload
+                : showingDetail
+                  ? detail.reload
+                  : undefined
         }
         loading={
-          detail.status === 'loading' || (inScorers && scorers.status === 'loading')
+          detail.status === 'loading' ||
+          (inScorers && scorers.status === 'loading') ||
+          (inTeamStats && teamScorers.status === 'loading')
         }
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
         starred={
-          !inReport && !inLive && !inTeam && showingDetail
+          !inReport && !inLive && !inTeam && !inTeamStats && showingDetail
             ? favorites.isLeagueFavorite(selected)
             : undefined
         }
         onToggleStar={
-          !inReport && !inLive && !inTeam && showingDetail
+          !inReport && !inLive && !inTeam && !inTeamStats && showingDetail
             ? () => favorites.toggleLeague(currentLeague)
             : undefined
         }
@@ -217,6 +241,16 @@ export default function App() {
               favoriteTeams={favorites.favoriteTeams}
             />
           )
+        ) : inTeamStats ? (
+          <LeagueScorersScreen
+            status={teamScorers.status}
+            data={teamScorers.data}
+            progress={teamScorers.progress}
+            error={teamScorers.error}
+            onReload={teamScorers.reload}
+            favoriteTeams={favorites.favoriteTeams}
+            teamName={teamNav}
+          />
         ) : inTeam ? (
           <TeamScheduleScreen
             data={data}
@@ -224,6 +258,7 @@ export default function App() {
             favoriteTeams={favorites.favoriteTeams}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}
+            onOpenScorers={() => setTeamStatsNav(true)}
           />
         ) : inScorers ? (
           <LeagueScorersScreen
@@ -244,7 +279,10 @@ export default function App() {
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}
             onOpenScorers={() => setStatsNav(true)}
-            onOpenTeam={setTeamNav}
+            onOpenTeam={(teamName) => {
+              setTeamNav(teamName)
+              setTeamStatsNav(false)
+            }}
           />
         ) : (
           <LeagueList

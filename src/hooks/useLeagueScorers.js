@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchLeagueScorers } from '../api/leagueStats.js'
 
-// Torschützenliste einer Liga laden. Da dafür alle Spielberichte der Liga
-// geladen werden (langsam, gedrosselt), läuft das nur, solange der Screen
-// sichtbar ist; bei Verlassen werden laufende Ergebnisse verworfen.
-export function useLeagueScorers(org, league, enabled) {
+// Torschützenliste einer Liga oder eines Teams laden. Da dafür die
+// Spielberichte geladen werden (langsam, gedrosselt), läuft das nur, solange
+// der Screen sichtbar ist; bei Verlassen werden laufende Ergebnisse verworfen.
+export function useLeagueScorers(org, league, enabled, teamName = '') {
   const [state, setState] = useState({ status: 'idle', data: null, progress: null, error: null })
   const runRef = useRef(0)
-  const leagueRef = useRef(league)
+  const scope = `${league ?? ''}\u0000${teamName ?? ''}`
+  const scopeRef = useRef(scope)
 
   const load = useCallback(
     async (force) => {
@@ -16,6 +17,7 @@ export function useLeagueScorers(org, league, enabled) {
       try {
         const data = await fetchLeagueScorers(org, league, {
           force,
+          teamName,
           onProgress: (progress) => {
             if (run === runRef.current) setState((prev) => ({ ...prev, progress }))
           },
@@ -32,21 +34,21 @@ export function useLeagueScorers(org, league, enabled) {
         )
       }
     },
-    [org, league],
+    [org, league, teamName],
   )
 
   useEffect(() => {
     if (!enabled || !league) return undefined
-    // Liga gewechselt: alte Statistik nicht weiter anzeigen.
-    if (leagueRef.current !== league) {
-      leagueRef.current = league
+    // Liga oder Team gewechselt: alte Statistik nicht weiter anzeigen.
+    if (scopeRef.current !== scope) {
+      scopeRef.current = scope
       setState({ status: 'idle', data: null, progress: null, error: null })
     }
     load(false)
     return () => {
       runRef.current += 1
     }
-  }, [enabled, league, load])
+  }, [enabled, league, scope, load])
 
   return { ...state, reload: () => load(true) }
 }

@@ -9,7 +9,7 @@
 |  - | Navigation Tabelle/Team --> Team-Spielplan | Fertig
 |  - | Harzverbot anzeigen | Fertig
 |  - | Vereins-Logos | Fertig (nur ausgewählte)
+|  - | Mannschafts-Statistik (Spieler) | Fertig
 |  - | User Login (simple auth) | 
 |  - | State pro User persistieren | 
-|  - | Mannschafts-Statistik | 
 |  - | Backend für caching und refresh der H4All Daten | 
