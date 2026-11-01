@@ -2,17 +2,22 @@ import { REPORT_BASE } from '../config.js'
 import { formatDate, formatTime } from '../utils/format.js'
 import { isFavoriteTeam } from '../utils/teams.js'
 import { useGymResin } from '../hooks/useGymResin.js'
+import ClubLogo from './ClubLogo.jsx'
 import ResinBadge from './ResinBadge.jsx'
 
-function TeamName({ name, favorite }) {
+function TeamName({ name, favorite, logoAfter = false }) {
   return (
-    <span
-      className={`block min-w-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap ${
-        favorite ? 'font-bold text-favink' : 'font-medium text-ink'
-      }`}
-      title={name}
-    >
-      {name}
+    <span className="flex w-full min-w-0 items-center gap-1.5">
+      {logoAfter ? null : <ClubLogo name={name} />}
+      <span
+        className={`min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap ${
+          logoAfter ? 'text-right' : 'text-left'
+        } ${favorite ? 'font-bold text-favink' : 'font-medium text-ink'}`}
+        title={name}
+      >
+        {name}
+      </span>
+      {logoAfter ? <ClubLogo name={name} /> : null}
     </span>
   )
 }
@@ -73,7 +78,7 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
 
       <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-center gap-2 sm:gap-3">
         <div className="min-w-0 w-full overflow-hidden text-right pr-1 sm:pr-2">
-          <TeamName name={game.home} favorite={homeFav} />
+          <TeamName name={game.home} favorite={homeFav} logoAfter />
         </div>
         <div className="w-[44px] justify-self-center text-center sm:w-[64px]">
           <div className="rounded-lg bg-surface2 px-0 py-0.5 text-xs font-bold tabular-nums text-ink sm:px-1.5 sm:py-1 sm:text-base">

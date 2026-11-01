@@ -8,8 +8,8 @@
 |  5 | Spielwoche auch für Favoriten-Teams | Fertig
 |  - | Navigation Tabelle/Team --> Team-Spielplan | Fertig
 |  - | Harzverbot anzeigen | Fertig
+|  - | Vereins-Logos | Fertig (nur ausgewählte)
 |  - | User Login (simple auth) | 
 |  - | State pro User persistieren | 
 |  - | Mannschafts-Statistik | 
-|  - | Vereins-Logos | 
 |  - | Backend für caching und refresh der H4All Daten | 

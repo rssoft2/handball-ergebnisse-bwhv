@@ -145,6 +145,7 @@ export default function App() {
               : inTeam
                 ? {
                     name: teamNav,
+                    logoName: teamNav,
                     subtitle: data?.meta?.name ? `Spielplan · ${data.meta.name}` : 'Spielplan',
                   }
                 : inScorers

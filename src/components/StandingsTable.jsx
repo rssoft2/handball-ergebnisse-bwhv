@@ -1,4 +1,5 @@
 import { isFavoriteTeam } from '../utils/teams.js'
+import ClubLogo from './ClubLogo.jsx'
 
 function formDotClass(value) {
   if (value === 'S') return 'bg-emerald-500 text-white'
@@ -46,7 +47,7 @@ export default function StandingsTable({ rows, favoriteTeams, formByTeam = {}, o
         <tbody>
           {rows.map((row) => {
             const fav = isFavoriteTeam(row.name, favoriteTeams)
-            const teamClass = `max-w-[10rem] truncate text-left sm:max-w-none ${
+            const teamClass = `max-w-[10rem] text-left sm:max-w-none ${
               fav ? 'font-bold text-favink' : 'font-medium text-ink'
             }`
             return (
@@ -64,14 +65,19 @@ export default function StandingsTable({ rows, favoriteTeams, formByTeam = {}, o
                     <button
                       type="button"
                       onClick={() => onSelectTeam(row.name)}
-                      className={`block w-full cursor-pointer px-2 py-2.5 transition hover:text-accent focus-visible:text-accent focus-visible:underline ${teamClass}`}
+                      className={`flex w-full min-w-0 cursor-pointer items-center gap-1.5 px-2 py-2.5 transition hover:text-accent focus-visible:text-accent focus-visible:underline ${teamClass}`}
                       title={row.name}
                     >
-                      {row.name}
+                      <ClubLogo name={row.name} />
+                      <span className="min-w-0 truncate">{row.name}</span>
                     </button>
                   ) : (
-                    <div className={`px-2 py-2.5 ${teamClass}`} title={row.name}>
-                      {row.name}
+                    <div
+                      className={`flex w-full min-w-0 items-center gap-1.5 px-2 py-2.5 ${teamClass}`}
+                      title={row.name}
+                    >
+                      <ClubLogo name={row.name} />
+                      <span className="min-w-0 truncate">{row.name}</span>
                     </div>
                   )}
                 </td>

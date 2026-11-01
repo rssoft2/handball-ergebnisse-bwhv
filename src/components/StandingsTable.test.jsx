@@ -25,8 +25,16 @@ describe('StandingsTable', () => {
 
   it('highlights favorite team', () => {
     render(<StandingsTable rows={mockStandings} formByTeam={formByTeam} favoriteTeams={['HSG Ettlingen']} />)
-    const team = screen.getByText('HSG Ettlingen')
+    const team = screen.getByText('HSG Ettlingen').parentElement
     expect(team).toHaveClass('font-bold')
+  })
+
+  it('zeigt das Logo eines bekannten Clubs', () => {
+    const { container } = render(
+      <StandingsTable rows={mockStandings} formByTeam={formByTeam} favoriteTeams={[]} />,
+    )
+    const srcs = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'))
+    expect(srcs).toContain(`${import.meta.env.BASE_URL}logos/clubs/hsg-ettlingen.svg`)
   })
 
   it('opens the team schedule when clicking a team name', async () => {

@@ -67,11 +67,59 @@ export function loadFavorites() {
   }
 }
 
-export function saveFavorites(favorites) {
+const CACHE_PREFIXES = ['h4a:cache:', 'h4a:report:', 'h4a:leaguestats:']
+
+function cachedKeys() {
+  const keys = []
   try {
-    window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites))
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i)
+      if (key && CACHE_PREFIXES.some((prefix) => key.startsWith(prefix))) keys.push(key)
+    }
   } catch {
-    /* localStorage nicht verfügbar – ignorieren */
+    /* localStorage nicht verfügbar */
+  }
+  return keys
+}
+
+function cacheTime(key) {
+  try {
+    return Number(JSON.parse(window.localStorage.getItem(key))?.t) || 0
+  } catch {
+    return 0
+  }
+}
+
+export function saveFavorites(favorites) {
+  let value
+  try {
+    value = JSON.stringify(favorites)
+  } catch {
+    return false
+  }
+
+  const write = () => window.localStorage.setItem(FAVORITES_STORAGE_KEY, value)
+
+  try {
+    write()
+    return true
+  } catch {
+    // Bei vollem Speicher zuerst alte API-Caches opfern; Favoriten, Theme und
+    // Zugangsschlüssel bleiben erhalten.
+    for (const key of cachedKeys().sort((a, b) => cacheTime(a) - cacheTime(b))) {
+      try {
+        window.localStorage.removeItem(key)
+      } catch {
+        /* ignorieren */
+      }
+      try {
+        write()
+        return true
+      } catch {
+        /* weiter aufräumen */
+      }
+    }
+    return false
   }
 }
 

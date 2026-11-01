@@ -19,6 +19,9 @@
   --accent-ink: #ffffff;
   --accent-soft: rgba(21, 94, 117, 0.12);
 
+  /* Club-Logos stehen auf einer hellen Kachel, auch im dunklen Theme. */
+  --logo-bg: #ffffff;
+
   /* Live-Rot */
   --live: #dc2626;
   --live-strong: #b91c1c;
@@ -88,6 +91,7 @@
   --color-accent: var(--accent);
   --color-accentink: var(--accent-ink);
   --color-accentsoft: var(--accent-soft);
+  --color-logobg: var(--logo-bg);
   --color-live: var(--live);
   --color-livestrong: var(--live-strong);
   --color-liveink: var(--live-ink);

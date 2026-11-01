@@ -1,3 +1,5 @@
+import { clubLogoFor } from '../utils/clubLogos.js'
+import ClubLogo from './ClubLogo.jsx'
 import FavoriteStar from './FavoriteStar.jsx'
 
 export default function Header({
@@ -36,11 +38,15 @@ export default function Header({
           </button>
         ) : null}
 
-        <img
-          src={`${import.meta.env.BASE_URL}icons/icon-64.png`}
-          alt=""
-          className="h-9 w-9 shrink-0 rounded-lg"
-        />
+        {meta?.logoName && clubLogoFor(meta.logoName) ? (
+          <ClubLogo name={meta.logoName} size="lg" loading="eager" />
+        ) : (
+          <img
+            src={`${import.meta.env.BASE_URL}icons/icon-64.png`}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-lg"
+          />
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

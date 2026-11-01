@@ -20,6 +20,12 @@ describe('MatchCard', () => {
     expect(screen.getByText('(16:14)')).toBeInTheDocument()
   })
 
+  it('shows the club logo for a known team', () => {
+    const { container } = render(<MatchCard game={mockGamePlayed} />)
+    const srcs = [...container.querySelectorAll('img')].map((img) => img.getAttribute('src'))
+    expect(srcs).toContain(`${import.meta.env.BASE_URL}logos/clubs/hsg-ettlingen.svg`)
+  })
+
   it('calls onOpenReport for statistik and verlauf', async () => {
     const user = userEvent.setup()
     const onOpenReport = vi.fn()
