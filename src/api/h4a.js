@@ -10,6 +10,7 @@ import {
   REQUEST_GAP_MS,
   LIVE_LIST_TTL_MS,
   SCHEDULE_TTL_MS,
+  GYM_TTL_MS,
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 import { isSubsequence, normalizeTeamName } from '../utils/teams.js'
@@ -136,6 +137,59 @@ async function getCached(key, loader, force = false, ttl) {
   const value = await loader()
   writeCache(key, value, ttl)
   return value
+}
+
+const gymKey = (org, gymId) => `gym:${org}:${gymId}`
+const gymInflight = new Map()
+let gymQueue = Promise.resolve()
+
+export function getCachedGymnasium(org, gymId) {
+  const id = trim(gymId)
+  if (!id || id === '0') return null
+  return readCache(gymKey(org, id))
+}
+
+async function fetchGymnasium(org, gymId) {
+  const id = trim(gymId)
+  if (!id || id === '0') return null
+  return getCached(
+    gymKey(org, id),
+    async () => {
+      const payload = await getJson({ cmd: 'gi', og: org, g: id })
+      const info = payload.gymnasiumInfo ?? {}
+      return {
+        id,
+        name: trim(info.name),
+        town: trim(info.town),
+        wax: trim(info.wax),
+      }
+    },
+    false,
+    GYM_TTL_MS,
+  )
+}
+
+// Hallen-Details nacheinander laden – die API drosselt Anfrage-Bursts.
+export function loadGymnasium(org, gymId) {
+  const id = trim(gymId)
+  if (!id || id === '0') return Promise.resolve(null)
+
+  const key = gymKey(org, id)
+  const cached = readCache(key)
+  if (cached) return Promise.resolve(cached)
+  if (gymInflight.has(key)) return gymInflight.get(key)
+
+  const task = gymQueue.then(async () => {
+    await sleep(REQUEST_GAP_MS)
+    return fetchGymnasium(org, id)
+  })
+  gymQueue = task.catch(() => {})
+  gymInflight.set(key, task)
+  task.then(
+    () => gymInflight.delete(key),
+    () => gymInflight.delete(key),
+  )
+  return task
 }
 
 /* ------------------------------------------------------------------ */
@@ -268,6 +322,7 @@ function normalizeGame(game) {
     awayGoals,
     homeHalftime: parseGoals(game.gHomeGoals_1),
     awayHalftime: parseGoals(game.gGuestGoals_1),
+    gymId: trim(game.gGymnasiumID),
     venue: trim(game.gGymnasiumName),
     town: trim(game.gGymnasiumTown),
     street: trim(game.gGymnasiumStreet),

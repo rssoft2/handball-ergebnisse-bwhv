@@ -1,10 +1,17 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MatchCard from './MatchCard.jsx'
+import { useGymResin } from '../hooks/useGymResin.js'
 import { mockGamePlayed, mockGameLive, mockGameUpcoming } from '../test/fixtures.js'
 
+vi.mock('../hooks/useGymResin.js', () => ({ useGymResin: vi.fn() }))
+
 describe('MatchCard', () => {
+  beforeEach(() => {
+    useGymResin.mockReturnValue(undefined)
+  })
+
   it('shows scores and team names for finished game', () => {
     render(<MatchCard game={mockGamePlayed} />)
     expect(screen.getByText('HSG Ettlingen')).toBeInTheDocument()
@@ -29,6 +36,12 @@ describe('MatchCard', () => {
     render(<MatchCard game={mockGamePlayed} onOpenLeague={onOpenLeague} />)
     await user.click(screen.getByRole('button', { name: 'Tabelle' }))
     expect(onOpenLeague).toHaveBeenCalledWith('123')
+  })
+
+  it('shows the resin rule for the gym', () => {
+    useGymResin.mockReturnValue('Absolutes Haftmittelverbot')
+    render(<MatchCard game={mockGamePlayed} />)
+    expect(screen.getByRole('img', { name: 'Haftmittel verboten' })).toBeInTheDocument()
   })
 
   it('shows the gym with full address as navigation link', () => {

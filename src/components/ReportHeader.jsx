@@ -1,5 +1,7 @@
 import { formatDate } from '../utils/format.js'
 import { isFavoriteTeam } from '../utils/teams.js'
+import { useGymResin } from '../hooks/useGymResin.js'
+import ResinBadge from './ResinBadge.jsx'
 
 // Kopf des Berichts: Heim/Gast, Endstand, Halbzeit und Eckdaten.
 export default function ReportHeader({ data, game, favoriteTeams }) {
@@ -18,6 +20,7 @@ export default function ReportHeader({ data, game, favoriteTeams }) {
 
   const homeFav = isFavoriteTeam(home, favoriteTeams)
   const awayFav = isFavoriteTeam(away, favoriteTeams)
+  const wax = useGymResin(game?.gymId)
 
   const when = [meta.date ? formatDate(meta.date) : game?.date ? formatDate(game.date) : '', meta.time || game?.time]
     .filter(Boolean)
@@ -61,7 +64,12 @@ export default function ReportHeader({ data, game, favoriteTeams }) {
       <div className="mt-3 space-y-0.5 text-center text-xs text-muted">
         {meta.league ? <div>{meta.league}</div> : null}
         {when ? <div className="tabular-nums">{when}</div> : null}
-        {meta.venue ? <div className="text-faint">{meta.venue}</div> : null}
+        {meta.venue ? (
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-faint">{meta.venue}</span>
+            <ResinBadge wax={wax} />
+          </div>
+        ) : null}
       </div>
     </div>
   )

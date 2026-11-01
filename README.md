@@ -6,7 +6,8 @@
 |  3 | Auswahl der Spielwoche | Fertig
 |  4 | Spieler-Statistik | Fertig
 |  5 | Spielwoche auch für Favoriten-Teams | Fertig
-|  - | Navigation Tabelle/Team --> Team-Spielplan | 
+|  - | Navigation Tabelle/Team --> Team-Spielplan | Fertig
+|  - | Harzverbot anzeigen | Fertig
 |  - | User Login (simple auth) | 
 |  - | State pro User persistieren | 
 |  - | Mannschafts-Statistik | 

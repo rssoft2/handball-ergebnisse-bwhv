@@ -1,6 +1,8 @@
 import { REPORT_BASE } from '../config.js'
 import { formatDate, formatTime } from '../utils/format.js'
 import { isFavoriteTeam } from '../utils/teams.js'
+import { useGymResin } from '../hooks/useGymResin.js'
+import ResinBadge from './ResinBadge.jsx'
 
 function TeamName({ name, favorite }) {
   return (
@@ -28,6 +30,7 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
   const homeFav = isFavoriteTeam(game.home, favoriteTeams)
   const awayFav = isFavoriteTeam(game.away, favoriteTeams)
   const isFav = homeFav || awayFav
+  const wax = useGymResin(game.gymId)
 
   const address = [game.street, [game.postal, game.town].filter(Boolean).join(' ')]
     .filter(Boolean)
@@ -58,11 +61,14 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
           {formatDate(game.date)}
           {game.time && !game.live ? ` · ${formatTime(game.time)}` : ''}
         </span>
-        {game.live ? (
-          <span className="shrink-0 text-[11px] font-semibold text-muted">
-            Live seit {formatTime(game.time)}
-          </span>
-        ) : null}
+        <span className="flex shrink-0 items-center gap-2">
+          {game.live ? (
+            <span className="text-[11px] font-semibold text-muted">
+              Live seit {formatTime(game.time)}
+            </span>
+          ) : null}
+          <ResinBadge wax={wax} />
+        </span>
       </div>
 
       <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-center gap-2 sm:gap-3">

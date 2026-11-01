@@ -37,11 +37,13 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 30 s aktualisieren (Live-Tab, nur bei sichtbarem Tab)
 - `src/hooks/useScheduleWeek.js` — Wochenspiele (`fetchScheduleByDate`) + Wochen-Navigation (Spielwoche-Tab)
 - `src/hooks/useLeagueScorers.js` — Torschützenliste einer Liga (alle Berichte; nur bei sichtbarem Screen)
+- `src/hooks/useGymResin.js` — Haftmittel-Regel (`wax`) einer Halle laden (Cache/Queue)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
 - `src/utils/spieltag.js` — Wochen-Auswahl + Gruppierung (`weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
 - `src/utils/teamSchedule.js` — Spielplan eines Teams aus den Liga-Spielen filtern (`scheduleForTeam`)
-- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, TeamScheduleScreen, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen
+- `src/utils/resin.js` — Haftmittel-Regel (`wax`) klassifizieren (`resinStatus`)
+- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, TeamScheduleScreen, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen, ResinBadge
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -58,6 +60,7 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 - `cmd=ps&og=<org>&cl=<league>&ca=1` → standings (`content.score`) + games (`content.futureGames.games`)
 - `cmd=cs&og=<org>&cs=<text>` → club search (`searchResult.list`, `{id,lname}`, max 50)
 - `cmd=pcu&og=<org>&c=<clubId>` → club page (`content.classes[].games`, grouped by league; je Liga die Partien des **aktuellen Spieltags**)
+- `cmd=gi&og=<org>&g=<gymId>` → Hallen-Details (`gymnasiumInfo.wax` = Haftmittel-Regelung, dazu Name/Ort). CORS offen; Spiele verweisen über `gGymnasiumID` auf die Halle.
 
 `fetchBwhvLeagues` merges statewide + region 246, drops leagues without a section
 (`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
@@ -67,8 +70,8 @@ into `live`, `played` (done, newest first) and `upcoming`. `teamNameMap` ordnet 
 Kurznamen der Spiele den Langnamen der Tabelle zu (`Kurzname → Langname`, JSON-taugliches
 Objekt; Basis für Form und Team-Spielplan). Spiele tragen `dateObj` als
 **Zeitstempel (Zahl)**, damit er die JSON-Zwischenspeicherung übersteht (sonst `Date` →
-String → `getTime`-Crash). Spiele enthalten die Halle (`venue`, `street`, `postal`, `town`
-aus `gGymnasium*`); `MatchCard` zeigt die vollständige Adresse als Google-Maps-Link
+String → `getTime`-Crash). Spiele enthalten die Halle (`gymId`, `venue`, `street`, `postal`,
+`town` aus `gGymnasium*`); `MatchCard` zeigt die vollständige Adresse als Google-Maps-Link
 (Navigation). Cache prefix `h4a:cache:v8`;
 theme persisted under `h4a:theme`. All UI text is German.
 
@@ -116,6 +119,14 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   `scheduleForTeam` filtert die Spiele der aktuellen Liga über `teamNameMap` (Spiele nutzen
   Kurznamen, die Tabelle Langnamen), dedupliziert per `gID` und sortiert. Kein zusätzlicher
   API-Call; der Screen kann von dort Bericht/Live-Ticker öffnen und kehrt dorthin zurück.
+- **Haftmittel**: `normalizeGame` legt `gymId` offen. `useGymResin` lädt `gymnasiumInfo.wax`
+  lazy über `cmd=gi`, cached unter `gym:<org>:<id>` (`GYM_TTL_MS`, 7 Tage) und reiht Anfragen
+  nacheinander mit `REQUEST_GAP_MS` ein. `resinStatus` klassifiziert den Freitext heuristisch:
+  `allowed` / `limited` (Auflagen, Ausnahmen, Alters-/Ligabeschränkungen) / `forbidden`;
+  unklare oder fehlende Regeln ergeben **kein** Icon. `ResinBadge` zeichnet nur die
+  Tropfen-Outline in 16 px (grün/amber/rot, ohne Innensymbol); er sitzt in der oberen Zeile
+  von `MatchCard` und neben dem Spielort im `ReportHeader`. Hover/Fokus zeigt einen Tooltip
+  mit Status und Originaltext.
 - **Favoriten** (Ligen, Vereine, Mannschaften) **pro Gerät** in `localStorage` unter
   `h4a:favorites:v1` — kein Backend/Login, nicht geräteübergreifend. `src/utils/favorites.js`
   (pure: `load/save/toggle` + `isLeagueFavorite`/`isClubFavorite`/`isTeamFavorite`/
