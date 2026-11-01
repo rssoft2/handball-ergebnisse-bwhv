@@ -19,5 +19,9 @@ export const CLUB_LOGOS = [
     name: 'TSV Rintheim',
     file: 'tsv-rintheim.svg',
     fit: 'contain',
+  },
+  {
+    name: "HSG Hardt",
+    file: 'hsg-hardt.png'
   }
 ]
