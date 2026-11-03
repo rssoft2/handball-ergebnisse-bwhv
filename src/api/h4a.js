@@ -11,6 +11,7 @@ import {
   LIVE_LIST_TTL_MS,
   SCHEDULE_TTL_MS,
   GYM_TTL_MS,
+  GYM_SEARCH_TTL_MS,
 } from '../config.js'
 import { parseGameDate, trim } from '../utils/format.js'
 import { isSubsequence, normalizeTeamName } from '../utils/teams.js'
@@ -634,6 +635,61 @@ export async function fetchScheduleByDate(org, region, dateIso, force = false) {
   )
 }
 
+// Spiele einer Halle je Liga-Gruppe (`gList`). `pgy` liefert die Liga nur als
+// Kurznamen (`gClassSname`), der Langname ist dort leer. Der Langname wird in
+// der UI über die bereits geladene Liga-Liste aufgelöst.
+function gymScheduleGamesOfPayload(payload) {
+  const games = []
+  for (const c of payload?.content?.gList ?? []) {
+    const leagueId = trim(c.gClassID)
+    const leagueName = trim(c.gClassLname || c.gClassSname)
+    for (const raw of c.games ?? []) {
+      const game = normalizeGame(raw)
+      if (!game.id) continue
+      games.push({
+        ...game,
+        leagueId,
+        leagueName,
+        leagueLevel: trim(c.gClassLevelName),
+      })
+    }
+  }
+  return games.sort(byDateAsc)
+}
+
+// Alle Spiele einer Halle in einer Kalenderwoche (`cmd=pgy`). `dateIso` ist ein
+// beliebiger Tag der Woche; die API liefert die Woche, in der das Datum liegt.
+export async function fetchGymSchedule(org, gymId, dateIso, force = false) {
+  const id = trim(gymId)
+  if (!id || !dateIso) return { gym: null, games: [], weekStart: dateIso, weeks: [] }
+  return getCached(
+    `gymschedule:${org}:${id}:${dateIso}`,
+    async () => {
+      const payload = await getJson({ cmd: 'pgy', og: org, g: id, do: dateIso })
+      const games = gymScheduleGamesOfPayload(payload)
+      const head = payload?.head ?? {}
+      const first = games[0]
+      const weeks = new Set()
+      for (const iso of Object.keys(payload?.menu?.dt?.list ?? {})) {
+        const year = Number(iso.slice(0, 4))
+        if (/^\d{4}-\d{2}-\d{2}$/.test(iso) && year >= 2000 && year <= 2100) weeks.add(iso)
+      }
+      return {
+        gym: {
+          id,
+          name: trim(head.name) || first?.venue || '',
+          town: first?.town || '',
+        },
+        games,
+        weekStart: dateIso,
+        weeks: [...weeks].sort(),
+      }
+    },
+    force,
+    SCHEDULE_TTL_MS,
+  )
+}
+
 // Tabelle + Spiele einer Liga
 export async function fetchLeague(org, league, force = false) {
   return getCached(
@@ -673,6 +729,30 @@ async function findClubs(org, query) {
 
   writeCache(key, clubs, CLUB_SEARCH_TTL_MS)
   return clubs
+}
+
+// Hallen zu einem Suchbegriff (`cmd=gs`). Liefert [{ gymId, name, town, postal, no }].
+export async function searchGyms(org, query) {
+  const text = trim(query)
+  if (text.length < 2) return []
+  const key = `gymsearch:${org}:${text.toLowerCase()}`
+  const cached = readCache(key)
+  if (cached) return cached
+
+  const payload = await getJson({ cmd: 'gs', og: org, gs: text })
+  const list = payload.searchResult?.list ?? []
+  const gyms = list
+    .map((item) => ({
+      gymId: String(item.id ?? '').trim(),
+      name: trim(item.lname),
+      town: trim(item.town),
+      postal: trim(item.postal),
+      no: trim(item.no),
+    }))
+    .filter((gym) => gym.gymId && gym.name)
+
+  writeCache(key, gyms, GYM_SEARCH_TTL_MS)
+  return gyms
 }
 
 async function fetchLeagueTeamNames(org, leagueId) {

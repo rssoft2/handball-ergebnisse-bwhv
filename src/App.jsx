@@ -16,6 +16,8 @@ import ReportTimelineScreen from './components/ReportTimelineScreen.jsx'
 import LiveScreen from './components/LiveScreen.jsx'
 import LeagueScorersScreen from './components/LeagueScorersScreen.jsx'
 import TeamScheduleScreen from './components/TeamScheduleScreen.jsx'
+import GymScheduleScreen from './components/GymScheduleScreen.jsx'
+import { mondayIsoOf } from './utils/spieltag.js'
 
 function readLeagueFromUrl() {
   return new URLSearchParams(window.location.search).get('cl') || ''
@@ -36,6 +38,7 @@ export default function App() {
   const [statsNav, setStatsNav] = useState(false)
   const [teamNav, setTeamNav] = useState(null)
   const [teamStatsNav, setTeamStatsNav] = useState(false)
+  const [gymNav, setGymNav] = useState(null)
   const favorites = useFavorites()
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
-  }, [selected, reportNav, liveNav, statsNav, teamNav, teamStatsNav])
+  }, [selected, reportNav, liveNav, statsNav, teamNav, teamStatsNav, gymNav])
 
   useEffect(() => {
     setReportNav(null)
@@ -67,6 +70,7 @@ export default function App() {
     setStatsNav(false)
     setTeamNav(null)
     setTeamStatsNav(false)
+    setGymNav(null)
   }, [selected])
 
   const leagues = useAsync(() => fetchBwhvLeagues(ORG, REGION), [ORG, REGION])
@@ -117,9 +121,24 @@ export default function App() {
     if (reportNav?.game?.reportId) reports.ensure(reportNav.game.reportId)
   }, [reportNav, reports.ensure])
 
+  const openGym = (gym) => {
+    if (!gym?.gymId) return
+    setReportNav(null)
+    setLiveNav(null)
+    setStatsNav(false)
+    setTeamNav(null)
+    setTeamStatsNav(false)
+    setGymNav({
+      gymId: String(gym.gymId),
+      name: gym.name || '',
+      weekStart: mondayIsoOf(gym.dateObj ?? Date.now()),
+    })
+  }
+
   const showingDetail = Boolean(selected)
   const inReport = Boolean(reportNav)
   const inLive = Boolean(liveNav)
+  const inGym = Boolean(gymNav)
   const inTeamStats = Boolean(selected) && Boolean(teamNav) && teamStatsNav
   const inTeam = Boolean(selected) && Boolean(teamNav) && !inTeamStats
   const inScorers = Boolean(selected) && statsNav
@@ -152,7 +171,9 @@ export default function App() {
                   name: `${reportNav.game.home} – ${reportNav.game.away}`,
                   subtitle: reportNav.kind === 'stats' ? 'Spielerstatistik' : 'Spielverlauf',
                 }
-              : inTeamStats
+              : inGym
+                ? { name: gymNav.name || 'Hallen-Spielplan', subtitle: 'Hallen-Spielplan' }
+                : inTeamStats
                 ? {
                     name: teamNav,
                     logoName: teamNav,
@@ -183,18 +204,20 @@ export default function App() {
             ? () => setLiveNav(null)
             : inReport
               ? () => setReportNav(null)
-              : inTeamStats
-                ? () => setTeamStatsNav(false)
-                : inTeam
-                  ? () => setTeamNav(null)
-                  : inScorers
-                    ? () => setStatsNav(false)
-                    : showingDetail
-                      ? () => setSelected('')
-                      : undefined
+              : inGym
+                ? () => setGymNav(null)
+                : inTeamStats
+                  ? () => setTeamStatsNav(false)
+                  : inTeam
+                    ? () => setTeamNav(null)
+                    : inScorers
+                      ? () => setStatsNav(false)
+                      : showingDetail
+                        ? () => setSelected('')
+                        : undefined
         }
         onRefresh={
-          inLive || inReport
+          inLive || inReport || inGym
             ? undefined
             : inTeamStats
               ? teamScorers.reload
@@ -212,12 +235,12 @@ export default function App() {
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
         starred={
-          !inReport && !inLive && !inTeam && !inTeamStats && showingDetail
+          !inReport && !inLive && !inTeam && !inTeamStats && !inGym && showingDetail
             ? favorites.isLeagueFavorite(selected)
             : undefined
         }
         onToggleStar={
-          !inReport && !inLive && !inTeam && !inTeamStats && showingDetail
+          !inReport && !inLive && !inTeam && !inTeamStats && !inGym && showingDetail
             ? () => favorites.toggleLeague(currentLeague)
             : undefined
         }
@@ -241,6 +264,29 @@ export default function App() {
               favoriteTeams={favorites.favoriteTeams}
             />
           )
+        ) : inGym ? (
+          <GymScheduleScreen
+            key={`${gymNav.gymId}:${gymNav.weekStart}`}
+            gymId={gymNav.gymId}
+            gymName={gymNav.name}
+            initialWeekStart={gymNav.weekStart}
+            leagues={leagues.data ?? []}
+            favoriteTeams={favorites.favoriteTeams}
+            onOpenReport={(game, kind, week) => {
+              if (week) setGymNav((prev) => (prev ? { ...prev, weekStart: week } : prev))
+              setReportNav({ game, kind })
+            }}
+            onOpenLive={(game, week) => {
+              if (week) setGymNav((prev) => (prev ? { ...prev, weekStart: week } : prev))
+              setLiveNav(game)
+            }}
+            onOpenLeague={(leagueId) => {
+              if (!leagueId) return
+              setGymNav(null)
+              setSelected(String(leagueId))
+            }}
+            onOpenGym={openGym}
+          />
         ) : inTeamStats ? (
           <LeagueScorersScreen
             status={teamScorers.status}
@@ -259,6 +305,7 @@ export default function App() {
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}
             onOpenScorers={() => setTeamStatsNav(true)}
+            onOpenGym={openGym}
           />
         ) : inScorers ? (
           <LeagueScorersScreen
@@ -283,6 +330,7 @@ export default function App() {
               setTeamNav(teamName)
               setTeamStatsNav(false)
             }}
+            onOpenGym={openGym}
           />
         ) : (
           <LeagueList
@@ -315,6 +363,7 @@ export default function App() {
               setSelected(leagueId)
               setTab('spielwoche')
             }}
+            onOpenGym={openGym}
             isLeagueFavorite={favorites.isLeagueFavorite}
             isClubFavorite={favorites.isClubFavorite}
             isTeamFavorite={favorites.isTeamFavorite}

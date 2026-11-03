@@ -31,7 +31,14 @@ function mapsUrl(game) {
     : ''
 }
 
-export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLive, onOpenLeague }) {
+export default function MatchCard({
+  game,
+  favoriteTeams,
+  onOpenReport,
+  onOpenLive,
+  onOpenLeague,
+  onOpenGym,
+}) {
   const homeFav = isFavoriteTeam(game.home, favoriteTeams)
   const awayFav = isFavoriteTeam(game.away, favoriteTeams)
   const isFav = homeFav || awayFav
@@ -94,13 +101,13 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
       </div>
 
       {place ? (
-        <div className="mt-2 text-center text-xs text-faint">
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-faint">
           <a
             href={navUrl}
             target="_blank"
             rel="noreferrer"
             title="Navigation starten"
-            className="inline-flex items-center justify-center gap-1 hover:text-accent hover:underline"
+            className="inline-flex min-w-0 items-center justify-center gap-1 hover:text-accent hover:underline"
           >
             <svg
               className="h-3.5 w-3.5 shrink-0"
@@ -115,8 +122,38 @@ export default function MatchCard({ game, favoriteTeams, onOpenReport, onOpenLiv
               <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            <span>{place}</span>
+            <span className="truncate">{place}</span>
           </a>
+          {game.gymId ? (
+            <button
+              type="button"
+              onClick={() =>
+                onOpenGym?.({
+                  gymId: game.gymId,
+                  name: game.venue,
+                  dateObj: game.dateObj,
+                })
+              }
+              title="Hallen-Spielplan anzeigen"
+              aria-label={`Hallen-Spielplan für ${game.venue || 'diese Halle'}`}
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-muted transition hover:bg-surface2 hover:text-accent active:scale-95"
+            >
+              <svg
+                className="h-3.5 w-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 21h18" />
+                <path d="M5 21V8l7-4 7 4v13" />
+                <path d="M9 21v-6h6v6" />
+              </svg>
+            </button>
+          ) : null}
         </div>
       ) : null}
 

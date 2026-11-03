@@ -2,7 +2,7 @@ import StateMessage from './StateMessage.jsx'
 import MatchCard from './MatchCard.jsx'
 
 // Übersicht aller derzeit laufenden Spiele (Startseiten-Tab "Live").
-export default function LiveGamesView({ games, status, error, onRetry, favoriteTeams, onOpenLive, onOpenLeague }) {
+export default function LiveGamesView({ games, status, error, onRetry, favoriteTeams, onOpenLive, onOpenLeague, onOpenGym }) {
   if (status === 'loading' && !games) return <StateMessage status="loading" />
   if (status === 'error') return <StateMessage status="error" error={error} onRetry={onRetry} />
 
@@ -22,6 +22,7 @@ export default function LiveGamesView({ games, status, error, onRetry, favoriteT
           favoriteTeams={favoriteTeams}
           onOpenLive={onOpenLive}
           onOpenLeague={onOpenLeague}
+          onOpenGym={onOpenGym}
         />
       ))}
     </div>

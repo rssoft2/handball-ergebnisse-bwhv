@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { searchTeams } from '../api/h4a.js'
+import { searchGyms, searchTeams } from '../api/h4a.js'
 import { ORG } from '../config.js'
 import FavoriteStar from './FavoriteStar.jsx'
 import FavoritesView from './FavoritesView.jsx'
@@ -87,6 +87,40 @@ function TeamRow({ team, onSelect, starred, onToggleStar }) {
   )
 }
 
+function GymRow({ gym, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect?.(gym)}
+      className="flex w-full min-w-0 items-center gap-3 rounded-lg px-2 py-2.5 text-left transition hover:bg-surface2 active:scale-[0.99]"
+    >
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface2 text-muted">
+        <svg
+          className="h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 21h18" />
+          <path d="M5 21V8l7-4 7 4v13" />
+          <path d="M9 21v-6h6v6" />
+        </svg>
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium text-ink">{gym.name}</div>
+        <div className="truncate text-xs text-muted">
+          {[gym.postal, gym.town].filter(Boolean).join(' ')}
+        </div>
+      </div>
+      <ChevronRight />
+    </button>
+  )
+}
+
 function GroupHeading({ children }) {
   return (
     <h2 className="mb-2 px-1 font-head text-xs font-semibold uppercase tracking-[0.06em] text-muted">
@@ -168,6 +202,7 @@ export default function LeagueList({
   onNextWeek,
   onOpenReport,
   onOpenLeague,
+  onOpenGym,
   isLeagueFavorite,
   isClubFavorite,
   isTeamFavorite,
@@ -209,23 +244,40 @@ export default function LeagueList({
     throttled: false,
   })
 
+  // Hallen über `gs` suchen (ein einzelner, leichter Aufruf).
+  const [gymState, setGymState] = useState({ status: 'idle', gyms: [] })
+
   useEffect(() => {
     if (q.length < 2) {
       setTeamState({ status: 'idle', clubs: [], teams: [], throttled: false })
+      setGymState({ status: 'idle', gyms: [] })
       return
     }
     let active = true
     setTeamState({ status: 'loading', clubs: [], teams: [], throttled: false })
-    const timer = setTimeout(() => {
-      searchTeams(ORG, q)
-        .then(({ clubs, teams, throttled }) => {
-          if (active) {
-            setTeamState({ status: 'ready', clubs: clubs.slice(0, 12), teams: teams.slice(0, 80), throttled })
-          }
-        })
-        .catch(() => {
-          if (active) setTeamState({ status: 'error', clubs: [], teams: [], throttled: false })
-        })
+    setGymState({ status: 'loading', gyms: [] })
+    const timer = setTimeout(async () => {
+      // Zuerst die leichte Hallensuche, dann die (aufwendigere) Vereinssuche –
+      // so entstehen keine parallelen Anfrage-Bursts.
+      try {
+        const gyms = await searchGyms(ORG, q)
+        if (active) setGymState({ status: 'ready', gyms: gyms.slice(0, 12) })
+      } catch {
+        if (active) setGymState({ status: 'error', gyms: [] })
+      }
+      try {
+        const { clubs, teams, throttled } = await searchTeams(ORG, q)
+        if (active) {
+          setTeamState({
+            status: 'ready',
+            clubs: clubs.slice(0, 12),
+            teams: teams.slice(0, 80),
+            throttled,
+          })
+        }
+      } catch {
+        if (active) setTeamState({ status: 'error', clubs: [], teams: [], throttled: false })
+      }
     }, 350)
     return () => {
       active = false
@@ -264,6 +316,7 @@ export default function LeagueList({
           favoriteTeams={favoriteTeams}
           onOpenLive={onOpenLive}
           onOpenLeague={onOpenLeague}
+          onOpenGym={onOpenGym}
         />
       ) : tab === 'spielwoche' ? (
         <SpielwocheView
@@ -281,6 +334,7 @@ export default function LeagueList({
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
           onOpenLeague={onOpenLeague}
+          onOpenGym={onOpenGym}
         />
       ) : (
         <>
@@ -302,7 +356,7 @@ export default function LeagueList({
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Liga, Verein oder Mannschaft suchen (z. B. Ettlingen, Bezirksliga)"
+              placeholder="Liga, Verein, Mannschaft oder Halle suchen (z. B. Ettlingen, Bertha-Benz-Halle)"
               className="w-full rounded-xl border border-line bg-surface py-2.5 pl-9 pr-10 text-sm text-ink outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accentsoft"
             />
             {query ? (
@@ -411,6 +465,26 @@ export default function LeagueList({
                   <StateMessage status="loading" />
                 ) : (
                   <p className="px-1 text-sm text-muted">Keine passende Mannschaft.</p>
+                )}
+              </div>
+
+              <div>
+                <GroupHeading>Hallen</GroupHeading>
+                {gymState.status === 'error' ? (
+                  <p className="px-1 text-sm text-muted">
+                    Handball4all drosselt gerade die Anfragen. Bitte einen Moment warten und
+                    erneut suchen.
+                  </p>
+                ) : gymState.gyms.length > 0 ? (
+                  <Card>
+                    {gymState.gyms.map((gym) => (
+                      <GymRow key={gym.gymId} gym={gym} onSelect={onOpenGym} />
+                    ))}
+                  </Card>
+                ) : gymState.status === 'loading' ? (
+                  <StateMessage status="loading" />
+                ) : (
+                  <p className="px-1 text-sm text-muted">Keine passende Halle.</p>
                 )}
               </div>
             </div>

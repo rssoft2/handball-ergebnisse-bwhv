@@ -44,6 +44,18 @@ describe('MatchCard', () => {
     expect(onOpenLeague).toHaveBeenCalledWith('123')
   })
 
+  it('opens the hall schedule from the venue control', async () => {
+    const user = userEvent.setup()
+    const onOpenGym = vi.fn()
+    render(<MatchCard game={mockGamePlayed} onOpenGym={onOpenGym} />)
+    await user.click(screen.getByRole('button', { name: 'Hallen-Spielplan für Sporthalle' }))
+    expect(onOpenGym).toHaveBeenCalledWith({
+      gymId: '1234',
+      name: 'Sporthalle',
+      dateObj: mockGamePlayed.dateObj,
+    })
+  })
+
   it('shows the resin rule for the gym', () => {
     useGymResin.mockReturnValue('Absolutes Haftmittelverbot')
     render(<MatchCard game={mockGamePlayed} />)

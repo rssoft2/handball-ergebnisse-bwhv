@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { gamesInRange, weekOf, weekLabel } from './spieltag.js'
+import {
+  gamesInRange,
+  isoDate,
+  mondayIsoOf,
+  parseIsoDate,
+  weekOf,
+  weekLabel,
+} from './spieltag.js'
 
 const local = (y, m, d, h = 12) => new Date(y, m - 1, d, h).getTime()
 
@@ -36,5 +43,22 @@ describe('gamesInRange', () => {
 
   it('liefert nur Spiele der Woche (Start inklusiv, Ende exklusiv)', () => {
     expect(gamesInRange(games, range).map((g) => g.id)).toEqual(['monday', 'sunday'])
+  })
+})
+
+describe('isoDate / parseIsoDate', () => {
+  it('formatiert und parst ISO-Daten ohne Zeitzonenverschiebung', () => {
+    expect(isoDate(local(2026, 11, 2))).toBe('2026-11-02')
+    const parsed = parseIsoDate('2026-11-02')
+    expect(parsed.getFullYear()).toBe(2026)
+    expect(parsed.getMonth()).toBe(10)
+    expect(parsed.getDate()).toBe(2)
+  })
+})
+
+describe('mondayIsoOf', () => {
+  it('liefert den Montag der Woche', () => {
+    expect(mondayIsoOf(local(2026, 10, 25))).toBe('2026-10-19')
+    expect(mondayIsoOf(local(2026, 10, 19))).toBe('2026-10-19')
   })
 })

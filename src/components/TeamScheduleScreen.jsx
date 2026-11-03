@@ -22,6 +22,7 @@ export default function TeamScheduleScreen({
   onOpenReport,
   onOpenLive,
   onOpenScorers,
+  onOpenGym,
 }) {
   const schedule = useMemo(() => scheduleForTeam(data, teamName), [data, teamName])
   const coming = [...schedule.live, ...schedule.upcoming]
@@ -62,6 +63,7 @@ export default function TeamScheduleScreen({
           favoriteTeams={favoriteTeams}
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
+          onOpenGym={onOpenGym}
           emptyText="Keine kommenden Spiele angesetzt."
           initialLimit={5}
         />
@@ -73,6 +75,7 @@ export default function TeamScheduleScreen({
           favoriteTeams={favoriteTeams}
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
+          onOpenGym={onOpenGym}
           emptyText="Noch keine Ergebnisse."
         />
       </Section>

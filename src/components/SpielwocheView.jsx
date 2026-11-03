@@ -100,6 +100,7 @@ export default function SpielwocheView({
   onOpenReport,
   onOpenLive,
   onOpenLeague,
+  onOpenGym,
 }) {
   const [collapsed, setCollapsed] = useState({})
 
@@ -296,6 +297,7 @@ export default function SpielwocheView({
                         onOpenReport={onOpenReport}
                         onOpenLive={onOpenLive}
                         onOpenLeague={onOpenLeague}
+                        onOpenGym={onOpenGym}
                       />
                     ))}
                   </div>

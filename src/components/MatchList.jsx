@@ -9,6 +9,7 @@ export default function MatchList({
   initialGames,
   onOpenReport,
   onOpenLive,
+  onOpenGym,
 }) {
   const [expanded, setExpanded] = useState(false)
   const base = initialGames ?? games.slice(0, initialLimit)
@@ -32,6 +33,7 @@ export default function MatchList({
           favoriteTeams={favoriteTeams}
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
+          onOpenGym={onOpenGym}
         />
       ))}
 

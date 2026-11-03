@@ -1,5 +1,5 @@
 // App-Version (Anzeige im Footer)
-export const APP_VERSION = '1.18.0'
+export const APP_VERSION = '1.19.0'
 
 export const API_BASE = 'https://spo.handball4all.de/service/if_g_json.php'
 
@@ -17,6 +17,9 @@ export const CLUB_TEAMS_TTL_MS = 24 * 60 * 60 * 1000
 
 // Hallen-Details (Haftmittel-Regelung) ändern sich selten.
 export const GYM_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+// Hallensuche (`gs`): Namen/Orte ändern sich selten.
+export const GYM_SEARCH_TTL_MS = 10 * 60 * 1000
 
 // Pro Suche: höchstens so viele Vereine auflösen; Pause zwischen den Aufrufen,
 // um die Drosselung der API (429) zu vermeiden.

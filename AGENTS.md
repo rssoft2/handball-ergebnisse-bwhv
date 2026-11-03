@@ -61,6 +61,8 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 - `cmd=cs&og=<org>&cs=<text>` → club search (`searchResult.list`, `{id,lname}`, max 50)
 - `cmd=pcu&og=<org>&c=<clubId>` → club page (`content.classes[].games`, grouped by league; je Liga die Partien des **aktuellen Spieltags**)
 - `cmd=gi&og=<org>&g=<gymId>` → Hallen-Details (`gymnasiumInfo.wax` = Haftmittel-Regelung, dazu Name/Ort). CORS offen; Spiele verweisen über `gGymnasiumID` auf die Halle.
+- `cmd=gs&og=<org>&gs=<text>` → Hallensuche (`searchResult.list`, `{id,lname,postal,town,no}`, max 50)
+- `cmd=pgy&og=<org>&g=<gymId>&do=<dateIso>` → Hallen-Spielplan einer Woche (`content.gList[].games` je Liga-Gruppe; `head.name` = Halle, `menu.dt.list` = Wochen). Liga dort nur als Kurzname (`gClassSname`, `gClassLname` leer); der Langname wird in der UI über die geladene Liga-Liste aufgelöst.
 
 `fetchBwhvLeagues` merges statewide + region 246, drops leagues without a section
 (`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
@@ -189,6 +191,17 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   Spiele" sind teambezogen. Favoriten-Team wird nur in der Liga-Ansicht hervorgehoben.
   `useLeagueScorers` lädt nur bei sichtbarem Screen und verwirft laufende Ergebnisse beim
   Verlassen (kein Polling).
+- **Hallen-Spielplan**: alle Spiele einer Halle in einer Kalenderwoche (`GymScheduleScreen`,
+  App-State `gymNav = { gymId, name, weekStart }`). `fetchGymSchedule` ruft `cmd=pgy` mit `do`
+  auf, normalisiert `content.gList[].games` (Liga-Kurzname aus `gClassSname`) und
+  liefert `{ gym, games, weeks }`; den vollständigen Liga-Namen setzt `GymScheduleScreen`
+  aus der von `App` übergebenen Liga-Liste (`leagues`), sonst bleibt der Kurzname.
+  Cache `gymschedule:${org}:${id}:${iso}` (`SCHEDULE_TTL_MS`).
+  `useGymSchedule` (Mount pro Halle via `key`) lädt die Startwoche (`initialWeekStart`) und
+  blättert ±7 Tage. Erreichbar über die **Hallensuche im zentralen Suchfeld** (`searchGyms` →
+  `cmd=gs`, Cache `gymsearch:…`, `GYM_SEARCH_TTL_MS`; eigene Gruppe „Hallen") und über ein
+  **Hallen-Icon neben dem Spielort** in `MatchCard`. Beim Öffnen wird die Woche des Spiels
+  verwendet; Bericht/Live öffnen sich darüber und kehren per Zurück zur Halle zurück.
 - **Live-Tab** (Startseite): listet alle laufenden Spiele landesweit + Bereich 246.
   `fetchLiveGames(org, region)` zieht die `po`-Übersichten beider Bereiche, sammelt Spiele mit
   `live === true` (inkl. Liga-Info), dedupliziert per `gID` und sortiert (Sektion → Alter → Level

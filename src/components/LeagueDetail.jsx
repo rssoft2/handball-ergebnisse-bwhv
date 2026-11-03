@@ -27,6 +27,7 @@ export default function LeagueDetail({
   onOpenLive,
   onOpenScorers,
   onOpenTeam,
+  onOpenGym,
 }) {
   if (status === 'loading' && !data) {
     return <StateMessage status="loading" />
@@ -66,6 +67,7 @@ export default function LeagueDetail({
           favoriteTeams={favoriteTeams}
           onOpenReport={onOpenReport}
           onOpenLive={onOpenLive}
+          onOpenGym={onOpenGym}
           emptyText="Noch keine Spiele gespielt."
         />
       </Section>
@@ -89,6 +91,7 @@ export default function LeagueDetail({
           favoriteTeams={favoriteTeams}
           emptyText="Keine kommenden Spiele angesetzt."
           initialLimit={5}
+          onOpenGym={onOpenGym}
         />
       </Section>
 

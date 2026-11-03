@@ -52,3 +52,19 @@ function rangeLabel(range) {
 export function weekLabel(range) {
   return rangeLabel(range)
 }
+
+// ISO-Datum (YYYY-MM-DD) für ein Datum/einen Zeitstempel.
+export function isoDate(ms) {
+  const d = ms == null ? new Date() : new Date(ms)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+export function parseIsoDate(iso) {
+  const [year, month, day] = String(iso).split('-').map(Number)
+  return new Date(year, (month || 1) - 1, day || 1)
+}
+
+// Montag der Woche, in der das Datum liegt, als ISO-Datum.
+export function mondayIsoOf(ms) {
+  return isoDate(weekOf(ms).start)
+}

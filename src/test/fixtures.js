@@ -13,6 +13,7 @@ export const mockGamePlayed = {
   homeHalftime: 16,
   awayHalftime: 14,
   venue: 'Sporthalle',
+  gymId: '1234',
   street: 'Musterstraße 1',
   postal: '76275',
   town: 'Ettlingen',

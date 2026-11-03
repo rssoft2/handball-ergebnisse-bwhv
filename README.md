@@ -1,5 +1,10 @@
 # Release Notes
 
+## v1.19.0
+- **Hallen‑Spielplan**: Hallensuche im zentralen Suchfeld (Gruppe „Hallen“) sowie ein Hallen‑Button neben dem Spielort in der MatchCard. Öffnet alle Spiele der Halle in einer Kalenderwoche (Mo–So), gruppiert nach Tag, mit Wochen‑Navigation. Bericht, Live‑Ticker und Tabelle sind direkt erreichbar; Zurück führt zur Halle.
+- **Liga‑Namen in der Halle**: Die MatchCard im Hallen‑Spielplan zeigt den vollständigen Liga‑Namen statt der Abkürzung.
+- **Vereins‑Logos**: Logo von HSG Hardt hinzugefügt.
+
 ## v1.18.0
 - **Team‑Statistik**: Im Team‑Spielplan erscheint ein Button „Torschützenliste“. Darin wird die Torschützenliste nur für das gewählte Team angezeigt. Header zeigt Teamname + Wappen und Untertitel „Torschützen · <Liga>“. Zurück führt zum Team‑Spielplan.
 
@@ -48,6 +53,8 @@
 |  - | Harzverbot anzeigen | Fertig
 |  - | Vereins-Logos | Fertig (nur ausgewählte)
 |  - | Mannschafts-Statistik (Spieler) | Fertig
+|  - | Strafen-Statistik | 
+|  - | Hallen-Spielplan | Fertig
 |  - | User Login (simple auth) | 
 |  - | State pro User persistieren | 
 |  - | Backend für caching und refresh der H4All Daten | 
