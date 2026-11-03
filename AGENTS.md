@@ -14,7 +14,7 @@ Mobile-first German web app for BWHV (org `216`) + Schwarzwald-Rhein (`246`). No
 
 Git: Do not push without approval!
 
-Do not use "grep" or "tail", use the equivalent PowerShell commands.
+Do not use "grep" or "tail" or "head" or "awk" or any other bash commands, use the equivalent PowerShell or Windows commands.
 
 **PowerShell**: use `;` not `&&`. `grep`/`tail` may be unavailable — use `Select-String`/`Get-Content | Select-Object -Last/ -First`. Verify via dev/UI and `npm run build`; `npx vitest run` for UI tests.
 
