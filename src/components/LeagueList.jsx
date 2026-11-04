@@ -209,6 +209,7 @@ export default function LeagueList({
   toggleLeague,
   toggleClub,
   toggleTeam,
+  onMoveClub,
 }) {
   const [query, setQuery] = useState('')
   const [openGroups, setOpenGroups] = useState(() => new Set())
@@ -303,9 +304,10 @@ export default function LeagueList({
           favorites={favorites}
           leagues={leagues}
           onSelect={onSelect}
-          onToggleLeague={toggleLeague}
-          onToggleClub={toggleClub}
-          onToggleTeam={toggleTeam}
+onToggleLeague={toggleLeague}
+           onToggleClub={toggleClub}
+           onToggleTeam={toggleTeam}
+           onMoveClub={onMoveClub}
         />
       ) : tab === 'live' ? (
         <LiveGamesView

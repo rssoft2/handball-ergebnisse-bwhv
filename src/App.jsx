@@ -370,6 +370,7 @@ export default function App() {
             toggleLeague={favorites.toggleLeague}
             toggleClub={favorites.toggleClub}
             toggleTeam={favorites.toggleTeam}
+            onMoveClub={favorites.moveClub}
           />
         )}
       </main>

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FAVORITES_STORAGE_KEY, loadFavorites, saveFavorites } from './favorites.js'
+import {
+  FAVORITES_STORAGE_KEY,
+  loadFavorites,
+  moveClub,
+  saveFavorites,
+  toggleClub,
+} from './favorites.js'
 
 describe('Favoriten-Speicher', () => {
   afterEach(() => {
@@ -40,5 +46,49 @@ describe('Favoriten-Speicher', () => {
     expect(window.localStorage.getItem(cacheKey)).toBeNull()
     expect(window.localStorage.getItem('h4a:theme')).toBe('dark')
     expect(loadFavorites()).toEqual(favorites)
+  })
+})
+
+describe('Vereinssortierung', () => {
+  const makeFavorites = () => ({
+    leagues: [],
+    clubs: [
+      { clubId: '1', clubName: 'Erster' },
+      { clubId: '2', clubName: 'Zweiter' },
+      { clubId: '3', clubName: 'Dritter' },
+    ],
+    teams: [],
+  })
+
+  it('verschiebt einen Verein nach oben und wieder nach unten', () => {
+    const moved = moveClub(makeFavorites(), '2', -1)
+    expect(moved.clubs.map((club) => club.clubName)).toEqual([
+      'Zweiter',
+      'Erster',
+      'Dritter',
+    ])
+
+    const back = moveClub(moved, '2', 1)
+    expect(back.clubs.map((club) => club.clubName)).toEqual([
+      'Erster',
+      'Zweiter',
+      'Dritter',
+    ])
+  })
+
+  it('lässt die Reihenfolge am Anfang und Ende unverändert', () => {
+    const favorites = makeFavorites()
+    expect(moveClub(favorites, '1', -1)).toBe(favorites)
+    expect(moveClub(favorites, '3', 1)).toBe(favorites)
+  })
+
+  it('hängt neue Vereine am Ende an', () => {
+    const updated = toggleClub(makeFavorites(), { clubId: '4', clubName: 'Vierter' })
+    expect(updated.clubs.map((club) => club.clubName)).toEqual([
+      'Erster',
+      'Zweiter',
+      'Dritter',
+      'Vierter',
+    ])
   })
 })

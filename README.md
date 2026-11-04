@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.20.0
+- **Favoriten‑Sortierung**: Vereine lassen sich im Favoriten‑Tab über einen eigenen Sortier‑Modus mit Hoch-/Runter‑Pfeilen neu anordnen. Die gewählte Reihenfolge gilt für die Spielwoche; neue Vereine werden am Ende einsortiert.
+
 ## v1.19.0
 - **Hallen‑Spielplan**: Hallensuche im zentralen Suchfeld (Gruppe „Hallen“) sowie ein Hallen‑Button neben dem Spielort in der MatchCard. Öffnet alle Spiele der Halle in einer Kalenderwoche (Mo–So), gruppiert nach Tag, mit Wochen‑Navigation.
 - **Vereins‑Logos**: Logo von HSG Hardt hinzugefügt.

@@ -76,7 +76,7 @@ function TeamRow({ team, onSelect, onToggle }) {
   )
 }
 
-function ClubRow({ club, onSelect, onToggle, orderByLeague }) {
+function ClubRow({ club, onSelect, onToggle, orderByLeague, sortMode = false, onMoveClub, index = 0, total = 0 }) {
   const [open, setOpen] = useState(false)
   const [state, setState] = useState({ status: 'idle', teams: [] })
 
@@ -106,6 +106,64 @@ function ClubRow({ club, onSelect, onToggle, orderByLeague }) {
       return a.teamName.localeCompare(b.teamName, 'de')
     })
   }, [state.teams, orderByLeague])
+
+  if (sortMode) {
+    const canMoveUp = Boolean(onMoveClub) && index > 0
+    const canMoveDown = Boolean(onMoveClub) && index < total - 1
+    return (
+      <div
+        key={club.clubId}
+        className="flex items-center gap-2 rounded-lg px-1 py-1 transition hover:bg-surface2"
+      >
+        <ClubLogo name={club.clubName} />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+          {club.clubName}
+        </span>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            aria-label={`${club.clubName} nach oben verschieben`}
+            onClick={() => onMoveClub?.(club.clubId, -1)}
+            disabled={!canMoveUp}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:bg-surface2 hover:text-ink active:scale-95 disabled:opacity-35 disabled:hover:bg-surface"
+          >
+            <svg
+              className="h-6 w-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 15l6-6 6 6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label={`${club.clubName} nach unten verschieben`}
+            onClick={() => onMoveClub?.(club.clubId, 1)}
+            disabled={!canMoveDown}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:bg-surface2 hover:text-ink active:scale-95 disabled:opacity-35 disabled:hover:bg-surface"
+          >
+            <svg
+              className="h-6 w-6"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-lg transition hover:bg-surface2">
@@ -156,9 +214,11 @@ function ClubRow({ club, onSelect, onToggle, orderByLeague }) {
   )
 }
 
-export default function FavoritesView({ favorites, leagues = [], onSelect, onToggleLeague, onToggleClub, onToggleTeam }) {
+export default function FavoritesView({ favorites, leagues = [], onSelect, onToggleLeague, onToggleClub, onToggleTeam, onMoveClub }) {
   const { leagues: favLeagues, clubs, teams } = favorites
   const empty = favLeagues.length === 0 && clubs.length === 0 && teams.length === 0
+
+  const [sortMode, setSortMode] = useState(false)
 
   // Reihenfolge der Ligen wie in der Auswahlliste (Index der bereits sortierten Liste).
   const orderByLeague = useMemo(
@@ -189,10 +249,27 @@ export default function FavoritesView({ favorites, leagues = [], onSelect, onTog
 
       {clubs.length > 0 ? (
         <Group title="Vereine">
-          {clubs.map((club) => (
+          <div className="mb-2 flex items-center justify-between gap-2 px-1">
+            <span className="min-w-0 truncate text-xs text-muted">
+              Reihenfolge für die Spielwoche
+            </span>
+            <button
+              type="button"
+              onClick={() => setSortMode((value) => !value)}
+              className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-2 text-xs font-semibold text-muted transition hover:bg-surface2 hover:text-ink active:scale-95"
+              aria-label={sortMode ? 'Sortier-Modus beenden' : 'Sortier-Modus starten'}
+            >
+              <span className="text-xs">{sortMode ? 'Fertig' : 'Sortieren'}</span>
+            </button>
+          </div>
+          {clubs.map((club, index) => (
             <ClubRow
               key={club.clubId}
               club={club}
+              index={index}
+              total={clubs.length}
+              sortMode={sortMode}
+              onMoveClub={onMoveClub}
               onSelect={onSelect}
               onToggle={onToggleClub}
               orderByLeague={orderByLeague}

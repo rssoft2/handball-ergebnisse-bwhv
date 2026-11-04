@@ -10,6 +10,7 @@ import {
   toggleClub as toggleClubIn,
   toggleLeague as toggleLeagueIn,
   toggleTeam as toggleTeamIn,
+  moveClub as moveClubIn,
 } from '../utils/favorites.js'
 
 // Favoriten pro Gerät: laden, ändern, speichern. Änderungen anderer Tabs
@@ -46,6 +47,11 @@ export function useFavorites() {
     setFavorites((prev) => toggleTeamIn(prev, team))
   }, [])
 
+  const moveClub = useCallback(
+    (clubId, delta) => setFavorites((prev) => moveClubIn(prev, clubId, delta)),
+    [],
+  )
+
   const favoriteTeams = useMemo(() => namesOf(favorites), [favorites])
 
   return {
@@ -57,5 +63,6 @@ export function useFavorites() {
     toggleLeague,
     toggleClub,
     toggleTeam,
+    moveClub,
   }
 }

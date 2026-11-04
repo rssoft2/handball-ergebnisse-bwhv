@@ -12,6 +12,28 @@ function asArray(value) {
 }
 
 // Robust gegen kaputte/ältere Einträge: nur brauchbare Objekte behalten, deduplizieren.
+
+// Verschiebt einen Verein innerhalb von favorites.clubs um delta (-1 = hoch, +1 = runter).
+// Gibt ein neues Favoriten-Objekt zurück; bei ungültiger ID oder am Rand bleibt das Original.
+export function moveClub(favorites, clubId, delta) {
+  const clubs = asArray(favorites?.clubs)
+  const id = String(clubId ?? '').trim()
+  const index = clubs.findIndex((club) => String(club?.clubId ?? '').trim() === id)
+  const target = index + delta
+  if (index === -1 || target < 0 || target >= clubs.length) return favorites
+  const next = [...clubs]
+  ;[next[index], next[target]] = [next[target], next[index]]
+  return { ...favorites, clubs: next }
+}
+
+// Neue Vereine werden am Ende der clubs-Liste angehängt.
+function appendClub(favorites, clubId, clubName) {
+  const existing = favorites.clubs.some((c) => String(c.clubId) === String(clubId))
+  if (existing) return favorites
+  return { ...favorites, clubs: [...favorites.clubs, { clubId, clubName }] }
+}
+
+// Robust gegen kaputte/ältere Einträge: nur brauchbare Objekte behalten, deduplizieren.
 function normalize(raw) {
   const data = raw && typeof raw === 'object' ? raw : {}
 
@@ -183,7 +205,7 @@ export function toggleClub(favorites, club) {
   if (exists) {
     return { ...favorites, clubs: favorites.clubs.filter((item) => item.clubId !== clubId) }
   }
-  return { ...favorites, clubs: [{ clubId, clubName }, ...favorites.clubs] }
+  return appendClub(favorites, clubId, clubName)
 }
 
 export function toggleTeam(favorites, team) {
