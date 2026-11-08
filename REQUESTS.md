@@ -11,7 +11,7 @@
 |   8  | Vereins-Logos | Fertig (nur ausgewählte)
 |   9  | Mannschafts-Statistik (Spieler) | Fertig
 |  10  | Hallen-Spielplan | Fertig
-|   -  | Strafen-Statistik | 
+|  11  | Strafen-Statistik | Fertig
 |   -  | Mannschafts-Kalender exportieren |
 
 # Professionalisierung

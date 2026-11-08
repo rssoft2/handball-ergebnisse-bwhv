@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v1.21.1
+- **Spielbericht-Cache**: Geparste Spielberichte werden dauerhaft in IndexedDB gespeichert, inklusive Rohtext und Parser-Version. Einmal geladene Berichte werden nicht erneut heruntergeladen; bestehende localStorage-Berichte werden migriert. Bei künftigen Parser-Änderungen wird aus dem Rohtext neu geparst.
+
 ## v1.21.0
 - **Liga-/Team-Statistik**: Die Statistik hat den neuen Tabs „Strafen“. Die Strafen-Tabelle zählt Gelb, 2 Minuten, Rot und Blau; direkte rote Karten zählen in Rot und Gesamt doppelt, indirekte rote Karten aus der 3. Zeitstrafe einfach.
 

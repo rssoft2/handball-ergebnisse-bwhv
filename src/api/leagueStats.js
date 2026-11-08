@@ -2,7 +2,7 @@ import { LEAGUE_STATS_TTL_MS, LEAGUE_STATS_GAP_MS } from '../config.js'
 import { normalizeTeamName } from '../utils/teams.js'
 import { scheduleForTeam, teamMatches } from '../utils/teamSchedule.js'
 import { fetchLeague } from './h4a.js'
-import { getReport } from './reports.js'
+import { getCachedReport, getReport } from './reports.js'
 
 // Liga-/Team-Statistik: beendete Spiele auswerten und daraus Torschützen sowie
 // Strafen aggregieren. Die Spielberichte sind unveränderlich und werden
@@ -184,11 +184,16 @@ export async function fetchLeagueStats(
   onProgress?.({ total: ids.length, loaded: 0, failed: 0 })
 
   for (let i = 0; i < ids.length; i += 1) {
-    if (i > 0) await sleep(LEAGUE_STATS_GAP_MS)
-    try {
-      reports.push(await getReport(ids[i]))
-    } catch {
-      failed += 1
+    const cached = await getCachedReport(ids[i])
+    if (cached) {
+      reports.push(cached)
+    } else {
+      if (i > 0) await sleep(LEAGUE_STATS_GAP_MS)
+      try {
+        reports.push(await getReport(ids[i]))
+      } catch {
+        failed += 1
+      }
     }
     onProgress?.({ total: ids.length, loaded: i + 1, failed })
   }

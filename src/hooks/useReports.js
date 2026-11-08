@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getReport } from '../api/reports.js'
+import { getReportEntry } from '../api/reports.js'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -24,8 +24,9 @@ export function useReports(games = [], enabled = true) {
       running.current.add(sGID)
       update(sGID, { status: 'loading' })
       try {
-        const data = await getReport(sGID)
-        update(sGID, { status: 'ready', data })
+        const entry = await getReportEntry(sGID)
+        update(sGID, { status: 'ready', data: entry.report })
+        return entry.source
       } catch (error) {
         update(sGID, { status: 'error', error: error?.message || String(error) })
       } finally {
@@ -60,9 +61,9 @@ export function useReports(games = [], enabled = true) {
         if (cancelled) return
         const current = mapRef.current.get(sGID)
         if (current && (current.status === 'ready' || current.status === 'loading')) continue
-        await load(sGID)
+        const source = await load(sGID)
         if (cancelled) return
-        await sleep(600)
+        if (source !== 'cache') await sleep(600)
       }
     })()
     return () => {

@@ -1,18 +1,26 @@
 import {
   REPORT_BASE,
   REPORT_PROXY_BASE,
-  REPORT_TTL_MS,
   THROTTLE_RETRIES,
   THROTTLE_BACKOFF_MS,
 } from '../config.js'
+import {
+  migrateLegacyReportCache,
+  readReportRecord,
+  writeReportRecord,
+} from './reportStore.js'
 
 // Spielberichte (PDF) können im Browser nicht direkt geladen werden: die
 // handball4all-URL setzt keine CORS-Header. Deshalb holen wir den Text über
 // r.jina.ai (CORS-freigegeben) im Format "text" – dort hat jede PDF-Zeile eine
 // eigene Zeile, wodurch sich Mannschaftsliste und Spielverlauf auswerten lassen.
-const CACHE_PREFIX = 'h4a:report:v5'
+// Geparster Bericht + Rohtext liegen dauerhaft in IndexedDB; die Parser-Version
+// erlaubt späteres Reparse ohne erneuten Download.
+export const REPORT_PARSER_VERSION = 1
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const pendingReports = new Map()
+let migrationPromise = null
 
 export function reportUrl(sGID) {
   return `${REPORT_PROXY_BASE}${REPORT_BASE}${sGID}`
@@ -22,28 +30,36 @@ export function reportUrl(sGID) {
 /* Cache                                                               */
 /* ------------------------------------------------------------------ */
 
-function readCache(sGID) {
-  try {
-    const raw = localStorage.getItem(`${CACHE_PREFIX}:${sGID}`)
-    if (!raw) return null
-    const entry = JSON.parse(raw)
-    if (Date.now() - entry.t > REPORT_TTL_MS) return null
-    return entry.v
-  } catch {
-    return null
+function ensureMigration() {
+  if (!migrationPromise) {
+    migrationPromise = migrateLegacyReportCache(REPORT_PARSER_VERSION).catch(() => {
+      migrationPromise = null
+    })
   }
+  return migrationPromise
 }
 
-function writeCache(sGID, value) {
-  try {
-    localStorage.setItem(`${CACHE_PREFIX}:${sGID}`, JSON.stringify({ t: Date.now(), v: value }))
-  } catch {
-    /* localStorage nicht verfügbar / voll – ignorieren */
-  }
+async function parseStoredRecord(sGID, record) {
+  if (!record?.text) return null
+  const parsed = parseReport(record.text)
+  await writeReportRecord({
+    ...record,
+    sGID,
+    parsed,
+    parserVersion: REPORT_PARSER_VERSION,
+    storedAt: Date.now(),
+  })
+  return parsed
 }
 
-export function cachedReport(sGID) {
-  return sGID ? readCache(sGID) : null
+export async function getCachedReport(sGID) {
+  if (!sGID) return null
+  await ensureMigration()
+  const key = String(sGID)
+  const record = await readReportRecord(key)
+  if (!record) return null
+  if (record.parsed && record.parserVersion === REPORT_PARSER_VERSION) return record.parsed
+  return parseStoredRecord(key, record)
 }
 
 /* ------------------------------------------------------------------ */
@@ -72,16 +88,37 @@ async function fetchText(sGID) {
   }
 }
 
-export async function getReport(sGID, force = false) {
-  if (!sGID) throw new Error('Für dieses Spiel liegt kein Bericht vor.')
-  if (!force) {
-    const cached = readCache(sGID)
-    if (cached) return cached
-  }
-  const text = await fetchText(sGID)
-  const parsed = parseReport(text)
-  writeCache(sGID, parsed)
-  return parsed
+export function getReport(sGID, force = false) {
+  return getReportEntry(sGID, { force }).then((entry) => entry.report)
+}
+
+export function getReportEntry(sGID, { force = false } = {}) {
+  if (!sGID) return Promise.reject(new Error('Für dieses Spiel liegt kein Bericht vor.'))
+  const key = String(sGID)
+  const running = !force && pendingReports.get(key)
+  if (running) return running
+
+  const task = (async () => {
+    if (!force) {
+      const cached = await getCachedReport(key)
+      if (cached) return { report: cached, source: 'cache' }
+    }
+    const text = await fetchText(key)
+    const parsed = parseReport(text)
+    await writeReportRecord({
+      sGID: key,
+      parsed,
+      text,
+      parserVersion: REPORT_PARSER_VERSION,
+      storedAt: Date.now(),
+    })
+    return { report: parsed, source: 'network' }
+  })().finally(() => {
+    if (pendingReports.get(key) === task) pendingReports.delete(key)
+  })
+
+  pendingReports.set(key, task)
+  return task
 }
 
 /* ------------------------------------------------------------------ */

@@ -29,6 +29,7 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/config.js` — `API_BASE`, `ORG`, `REGION`, cache TTLs (+ `LEAGUE_STATS_*`), `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
 - `src/api/h4a.js` — all HTTP + normalization + cache + age/section grouping
 - `src/api/reports.js` — Spielberichte: Text über Jina holen + parsen (Meta, Spielerstatistik, Spielverlauf)
+- `src/api/reportStore.js` — dauerhafter IndexedDB-Cache für Spielberichte (geparst + Rohtext, Parser-Version, localStorage-Migration)
 - `src/api/leagueStats.js` — Liga-/Team-Statistik: Berichte laden + Tore/Strafen aggregieren (`fetchLeagueStats`, `aggregateScorers`, `aggregatePenalties`, `filterPlayersByTeam`)
 - `src/api/live.js` — Live-Ticker: `if_ticker_data.php` abfragen + normalisieren
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
@@ -167,14 +168,15 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   ist automatisch rot (der Bericht loggt dann zusätzlich eine Disqualifikation zur selben Zeit →
   `applyCardRules` fasst beide zu einer roten Karte zusammen). Spielverlauf wird **umgekehrt** gezeigt
   (Spielende oben, Spielanfang unten). `useReports` lädt die sichtbaren
-  „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor (Cache `h4a:report:v5`), `ensure(sGID)`
+  „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor; Berichte liegen dauerhaft in
+  IndexedDB (`h4a-reports`: parsed + Rohtext + Parser-Version, kein TTL), `ensure(sGID)`
   lädt on demand. Buttons **Statistik**/**Verlauf** (+ PDF) an `MatchCard`; Screens via `App`-State
   `reportNav`, Header-Zurück zur Liga.
 - **Liga-/Team-Statistik (Tore + Strafen)**: `api/leagueStats.js` →
   `fetchLeagueStats(org, league, {onProgress, force, teamName})` zieht `fetchLeague` (gecacht).
   Ohne `teamName` werden alle `played`-Spiele mit `reportId` geladen, mit `teamName` nur die
   Spiele des Teams über `scheduleForTeam`/`teamMatches`. Berichte kommen **sequenziell** über
-  `getReport` (gecachte überspringen, `LEAGUE_STATS_GAP_MS` Pause). `aggregateScorers` summiert
+  `getReport`; Cache-Treffer aus IndexedDB überspringen die `LEAGUE_STATS_GAP_MS`-Pause. `aggregateScorers` summiert
   je Spieler Tore, 7m-Treffer, Spiele und Karten; nur Spieler mit `goals>0`, sortiert Tore↓ /
   Feld↓ / Name. `aggregatePenalties` zählt Gelb/2 Min/Rot/Blau, nur Spieler mit mindestens einer
   Karte, sortiert Gesamt↓ / Rot↓ / 2 Min↓ / Gelb↓ / Blau↓ / Name. Direkte rote Karten zählen in
@@ -184,8 +186,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   Zahl. `filterPlayersByTeam` entfernt bei Team-Statistik die Gegner.
   Nur **vollständige** Durchläufe (keine fehlgeschlagenen Berichte) werden gecacht:
   `h4a:leaguestats:v4:${org}:${league}` bzw. `...:team:${normalizedTeam}` mit Signatur =
-  sGID-Liste, TTL `LEAGUE_STATS_TTL_MS`. Berichte sind unveränderlich → `REPORT_TTL_MS` jetzt
-  **1 Jahr**.
+  sGID-Liste, TTL `LEAGUE_STATS_TTL_MS`. Berichte sind unveränderlich und werden dauerhaft in
+  IndexedDB gespeichert (kein TTL); `REPORT_PARSER_VERSION` erlaubt Reparse aus dem Rohtext.
   Screen `LeagueStatsScreen` (App-States `statsNav`/`teamStatsNav` = `scorers`/`penalties`;
   erreichbar über „Liga-Statistik" in `LeagueDetail` bzw. „Team-Statistik" in
   `TeamScheduleScreen`) zeigt Tabs **Tore / Strafen**, Fortschrittsbalken und die jeweilige
