@@ -4,11 +4,11 @@ import { scheduleForTeam, teamMatches } from '../utils/teamSchedule.js'
 import { fetchLeague } from './h4a.js'
 import { getReport } from './reports.js'
 
-// Liga-/Team-Statistik: beendete Spiele auswerten und daraus eine
-// Torschützenliste aggregieren. Die Spielberichte sind unveränderlich und werden
+// Liga-/Team-Statistik: beendete Spiele auswerten und daraus Torschützen sowie
+// Strafen aggregieren. Die Spielberichte sind unveränderlich und werden
 // von `getReport` dauerhaft gecacht; das aggregierte Ergebnis wird zusätzlich
 // signaturbasiert (Liste der Berichts-IDs) zwischengespeichert.
-const CACHE_PREFIX = 'h4a:leaguestats:v2'
+const CACHE_PREFIX = 'h4a:leaguestats:v4'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -64,10 +64,9 @@ function writeCache(org, league, teamName, signature, value) {
 /* Aggregation                                                         */
 /* ------------------------------------------------------------------ */
 
-// Aus den geparsten Berichten eine Torschützenliste bauen. Spieler werden über
-// Team + Name identifiziert (Rückennummern wechseln zwischen Spielen); angezeigt
-// wird die häufigste Nummer. Nur Spieler mit mindestens einem Tor.
-export function aggregateScorers(reports) {
+// Spieler werden über Team + Name identifiziert (Rückennummern wechseln
+// zwischen Spielen); angezeigt wird die häufigste Nummer.
+function aggregatePlayers(reports) {
   const byPlayer = new Map()
 
   for (const report of reports) {
@@ -88,6 +87,7 @@ export function aggregateScorers(reports) {
             two: 0,
             red: 0,
             blue: 0,
+            total: 0,
             nrs: {},
           }
           byPlayer.set(key, agg)
@@ -98,41 +98,71 @@ export function aggregateScorers(reports) {
         const nr = String(p.nr || '').trim()
         if (nr) agg.nrs[nr] = (agg.nrs[nr] || 0) + 1
         for (const card of p.cards || []) {
-          if (agg[card.kind] != null) agg[card.kind] += 1
+          if (
+            card.kind === 'yellow' ||
+            card.kind === 'two' ||
+            card.kind === 'red' ||
+            card.kind === 'blue'
+          ) {
+            const weight = card.kind === 'red' && !card.indirect ? 2 : 1
+            agg[card.kind] += weight
+            agg.total += weight
+          }
         }
       }
     }
   }
 
-  return [...byPlayer.values()]
-    .map((p) => {
-      const nrs = Object.entries(p.nrs).sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]))
-      const { nrs: _drop, ...rest } = p
-      return { ...rest, nr: nrs.length ? nrs[0][0] : '' }
-    })
-    .filter((p) => p.goals > 0)
-    .sort(
-      (a, b) =>
-        b.goals - a.goals ||
-        b.goals - b.seven - (a.goals - a.seven) ||
-        a.name.localeCompare(b.name, 'de'),
-    )
+  return [...byPlayer.values()].map((p) => {
+    const nrs = Object.entries(p.nrs).sort((a, b) => b[1] - a[1] || Number(a[0]) - Number(b[0]))
+    const { nrs: _drop, ...rest } = p
+    return { ...rest, nr: nrs.length ? nrs[0][0] : '' }
+  })
 }
 
-export function filterScorersByTeam(scorers, teamName, nameMap) {
+const byGoals = (a, b) =>
+  b.goals - a.goals ||
+  b.goals - b.seven - (a.goals - a.seven) ||
+  a.name.localeCompare(b.name, 'de') ||
+  a.team.localeCompare(b.team, 'de')
+
+const byPenalties = (a, b) =>
+  b.total - a.total ||
+  b.red - a.red ||
+  b.two - a.two ||
+  b.yellow - a.yellow ||
+  b.blue - a.blue ||
+  a.name.localeCompare(b.name, 'de') ||
+  a.team.localeCompare(b.team, 'de')
+
+// Nur Spieler mit mindestens einem Tor.
+export function aggregateScorers(reports) {
+  return aggregatePlayers(reports)
+    .filter((p) => p.goals > 0)
+    .sort(byGoals)
+}
+
+// Nur Spieler mit mindestens einer Karte (Gelb, 2 Min, Rot oder Blau).
+export function aggregatePenalties(reports) {
+  return aggregatePlayers(reports)
+    .filter((p) => p.total > 0)
+    .sort(byPenalties)
+}
+
+export function filterPlayersByTeam(players, teamName, nameMap) {
   const team = String(teamName ?? '').trim()
-  if (!team) return scorers
-  return (scorers || []).filter((player) => teamMatches(player.team, team, nameMap))
+  if (!team) return players
+  return (players || []).filter((player) => teamMatches(player.team, team, nameMap))
 }
 
 /* ------------------------------------------------------------------ */
 /* Laden                                                               */
 /* ------------------------------------------------------------------ */
 
-// Torschützenliste einer Liga oder eines Teams. Lädt nacheinander alle noch
-// nicht gecachten Berichte (der Textdienst drosselt) und meldet den Fortschritt
-// über onProgress. Nur ein vollständiger Durchlauf wird gecacht.
-export async function fetchLeagueScorers(
+// Torschützen und Strafen einer Liga oder eines Teams. Lädt nacheinander alle
+// noch nicht gecachten Berichte (der Textdienst drosselt) und meldet den
+// Fortschritt über onProgress. Nur ein vollständiger Durchlauf wird gecacht.
+export async function fetchLeagueStats(
   org,
   league,
   { onProgress, force = false, teamName = '' } = {},
@@ -163,8 +193,14 @@ export async function fetchLeagueScorers(
     onProgress?.({ total: ids.length, loaded: i + 1, failed })
   }
 
-  const scorers = filterScorersByTeam(
-    aggregateScorers(reports),
+  const players = aggregatePlayers(reports)
+  const scorers = filterPlayersByTeam(
+    players.filter((p) => p.goals > 0).sort(byGoals),
+    team,
+    detail.teamNameMap,
+  )
+  const penalties = filterPlayersByTeam(
+    players.filter((p) => p.total > 0).sort(byPenalties),
     team,
     detail.teamNameMap,
   )
@@ -176,6 +212,7 @@ export async function fetchLeagueScorers(
     failedReports: failed,
     complete: failed === 0,
     scorers,
+    penalties,
   }
 
   if (failed === 0) writeCache(org, league, team, signature, result)

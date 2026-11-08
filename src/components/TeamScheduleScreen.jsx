@@ -15,13 +15,26 @@ function Section({ title, subtitle, children }) {
   )
 }
 
+function StatsButton({ title, hint, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-4 py-3 text-left shadow-sm transition hover:bg-surface2 active:scale-[0.99]"
+    >
+      <span className="font-head text-sm font-semibold text-ink">{title}</span>
+      <span className="shrink-0 text-xs text-muted">{hint}</span>
+    </button>
+  )
+}
+
 export default function TeamScheduleScreen({
   data,
   teamName,
   favoriteTeams,
   onOpenReport,
   onOpenLive,
-  onOpenScorers,
+  onOpenStats,
   onOpenGym,
 }) {
   const schedule = useMemo(() => scheduleForTeam(data, teamName), [data, teamName])
@@ -30,21 +43,14 @@ export default function TeamScheduleScreen({
 
   if (!data) return null
 
-  const scorersButton = onOpenScorers ? (
-    <button
-      type="button"
-      onClick={onOpenScorers}
-      className="flex w-full items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3 text-left shadow-sm transition hover:bg-surface2 active:scale-[0.99]"
-    >
-      <span className="font-head text-sm font-semibold text-ink">Torschützenliste</span>
-      <span className="text-xs text-muted">Team-Statistik ›</span>
-    </button>
+  const statsButton = onOpenStats ? (
+    <StatsButton title="Team-Statistik" hint="Tore & Strafen ›" onClick={onOpenStats} />
   ) : null
 
   if (total === 0) {
     return (
       <div className="space-y-8">
-        {scorersButton}
+        {statsButton}
         <StateMessage emptyText="Keine Spiele für dieses Team gefunden." />
       </div>
     )
@@ -52,7 +58,7 @@ export default function TeamScheduleScreen({
 
   return (
     <div className="space-y-8">
-      {scorersButton}
+      {statsButton}
 
       <Section
         title="Kommende Spiele"

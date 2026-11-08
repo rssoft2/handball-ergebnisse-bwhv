@@ -31,21 +31,21 @@ describe('TeamScheduleScreen', () => {
     expect(screen.getByText('Keine Spiele für dieses Team gefunden.')).toBeInTheDocument()
   })
 
-  it('opens the team scorers list', async () => {
+  it('opens the team statistics', async () => {
     const user = userEvent.setup()
-    const onOpenScorers = vi.fn()
+    const onOpenStats = vi.fn()
 
     render(
       <TeamScheduleScreen
         data={data}
         teamName="HSG Ettlingen"
         favoriteTeams={[]}
-        onOpenScorers={onOpenScorers}
+        onOpenStats={onOpenStats}
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /Torschützenliste/ }))
+    await user.click(screen.getByRole('button', { name: /Team-Statistik/ }))
 
-    expect(onOpenScorers).toHaveBeenCalledTimes(1)
+    expect(onOpenStats).toHaveBeenCalledTimes(1)
   })
 })

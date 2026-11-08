@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchLeagueScorers } from '../api/leagueStats.js'
+import { fetchLeagueStats } from '../api/leagueStats.js'
 
-// Torschützenliste einer Liga oder eines Teams laden. Da dafür die
+// Torschützen und Strafen einer Liga oder eines Teams laden. Da dafür die
 // Spielberichte geladen werden (langsam, gedrosselt), läuft das nur, solange
 // der Screen sichtbar ist; bei Verlassen werden laufende Ergebnisse verworfen.
-export function useLeagueScorers(org, league, enabled, teamName = '') {
+export function useLeagueStats(org, league, enabled, teamName = '') {
   const [state, setState] = useState({ status: 'idle', data: null, progress: null, error: null })
   const runRef = useRef(0)
   const scope = `${league ?? ''}\u0000${teamName ?? ''}`
@@ -15,7 +15,7 @@ export function useLeagueScorers(org, league, enabled, teamName = '') {
       const run = (runRef.current += 1)
       setState((prev) => ({ status: 'loading', data: prev.data, progress: null, error: null }))
       try {
-        const data = await fetchLeagueScorers(org, league, {
+        const data = await fetchLeagueStats(org, league, {
           force,
           teamName,
           onProgress: (progress) => {

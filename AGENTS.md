@@ -29,21 +29,21 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/config.js` — `API_BASE`, `ORG`, `REGION`, cache TTLs (+ `LEAGUE_STATS_*`), `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
 - `src/api/h4a.js` — all HTTP + normalization + cache + age/section grouping
 - `src/api/reports.js` — Spielberichte: Text über Jina holen + parsen (Meta, Spielerstatistik, Spielverlauf)
-- `src/api/leagueStats.js` — Liga-/Team-Statistik: Berichte laden + Torschützenliste aggregieren (`fetchLeagueScorers`, `aggregateScorers`, `filterScorersByTeam`)
+- `src/api/leagueStats.js` — Liga-/Team-Statistik: Berichte laden + Tore/Strafen aggregieren (`fetchLeagueStats`, `aggregateScorers`, `aggregatePenalties`, `filterPlayersByTeam`)
 - `src/api/live.js` — Live-Ticker: `if_ticker_data.php` abfragen + normalisieren
 - `src/hooks/useAsync.js` — generic async loader (`{status,data,error,reload}`)
 - `src/hooks/useReports.js` — Vorladen/Parsen der Berichte (Queue, Fortschritt, `ensure`)
 - `src/hooks/useLive.js` — Live-Ticker laden + alle 15 s aktualisieren (nur bei sichtbarem Tab)
 - `src/hooks/useLiveGames.js` — laufende Spiele laden + alle 30 s aktualisieren (Live-Tab, nur bei sichtbarem Tab)
 - `src/hooks/useScheduleWeek.js` — Wochenspiele (`fetchScheduleByDate`) + Wochen-Navigation (Spielwoche-Tab)
-- `src/hooks/useLeagueScorers.js` — Torschützenliste einer Liga oder eines Teams (nur bei sichtbarem Screen)
+- `src/hooks/useLeagueStats.js` — Tore/Strafen einer Liga oder eines Teams (nur bei sichtbarem Screen)
 - `src/hooks/useGymResin.js` — Haftmittel-Regel (`wax`) einer Halle laden (Cache/Queue)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
 - `src/utils/spieltag.js` — Wochen-Auswahl + Gruppierung (`weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
 - `src/utils/teamSchedule.js` — Spielplan eines Teams aus den Liga-Spielen filtern (`scheduleForTeam`, `teamMatches`)
 - `src/utils/resin.js` — Haftmittel-Regel (`wax`) klassifizieren (`resinStatus`)
-- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, TeamScheduleScreen, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueScorersScreen, ResinBadge
+- `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, TeamScheduleScreen, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueStatsScreen, ResinBadge
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
 - `scripts/qr.mjs` — LAN QR code generator
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
@@ -121,8 +121,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   `scheduleForTeam` filtert die Spiele der aktuellen Liga über `teamNameMap` (Spiele nutzen
   Kurznamen, die Tabelle Langnamen), dedupliziert per `gID` und sortiert. Kein zusätzlicher
   API-Call; der Screen kann von dort Bericht/Live-Ticker öffnen und kehrt dorthin zurück.
-  Button „Torschützenliste" öffnet die Team-Statistik (`teamStatsNav`) mit Teamname + Wappen
-  im Header; Zurück führt zum Team-Spielplan.
+  Button „Team-Statistik" öffnet den Statistik-Screen (`teamStatsNav`) mit Teamname +
+  Wappen im Header; die Tabs Tore/Strafen liegen im Screen. Zurück führt zum Team-Spielplan.
 - **Haftmittel**: `normalizeGame` legt `gymId` offen. `useGymResin` lädt `gymnasiumInfo.wax`
   lazy über `cmd=gi`, cached unter `gym:<org>:<id>` (`GYM_TTL_MS`, 7 Tage) und reiht Anfragen
   nacheinander mit `REQUEST_GAP_MS` ein. `resinStatus` klassifiziert den Freitext heuristisch:
@@ -167,30 +167,33 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   ist automatisch rot (der Bericht loggt dann zusätzlich eine Disqualifikation zur selben Zeit →
   `applyCardRules` fasst beide zu einer roten Karte zusammen). Spielverlauf wird **umgekehrt** gezeigt
   (Spielende oben, Spielanfang unten). `useReports` lädt die sichtbaren
-  „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor (Cache `h4a:report:v4`), `ensure(sGID)`
+  „Letzten Spiele" (7 Tage) im Hintergrund sequenziell vor (Cache `h4a:report:v5`), `ensure(sGID)`
   lädt on demand. Buttons **Statistik**/**Verlauf** (+ PDF) an `MatchCard`; Screens via `App`-State
   `reportNav`, Header-Zurück zur Liga.
-- **Liga-/Team-Statistik / Torschützenliste**: `api/leagueStats.js` →
-  `fetchLeagueScorers(org, league, {onProgress, force, teamName})` zieht `fetchLeague` (gecacht).
+- **Liga-/Team-Statistik (Tore + Strafen)**: `api/leagueStats.js` →
+  `fetchLeagueStats(org, league, {onProgress, force, teamName})` zieht `fetchLeague` (gecacht).
   Ohne `teamName` werden alle `played`-Spiele mit `reportId` geladen, mit `teamName` nur die
   Spiele des Teams über `scheduleForTeam`/`teamMatches`. Berichte kommen **sequenziell** über
   `getReport` (gecachte überspringen, `LEAGUE_STATS_GAP_MS` Pause). `aggregateScorers` summiert
   je Spieler Tore, 7m-Treffer, Spiele und Karten; nur Spieler mit `goals>0`, sortiert Tore↓ /
-  Feld↓ / Name. Spieler werden je Team **nur nach Name** zusammengefasst (Rückennummern wechseln
-  zwischen Spielen), angezeigt wird die häufigste Nummer. 7m-Treffer aus der Spalte „7m/ Tore" =
-  **Versuche/verwandelte** → zweite Zahl. `filterScorersByTeam` entfernt bei Team-Statistik die
-  Gegner.
+  Feld↓ / Name. `aggregatePenalties` zählt Gelb/2 Min/Rot/Blau, nur Spieler mit mindestens einer
+  Karte, sortiert Gesamt↓ / Rot↓ / 2 Min↓ / Gelb↓ / Blau↓ / Name. Direkte rote Karten zählen in
+  Rot und Gesamt doppelt; indirekte rote Karten (3. Zeitstrafe) einfach. Spieler werden je Team **nur
+  nach Name** zusammengefasst (Rückennummern wechseln zwischen Spielen), angezeigt wird die
+  häufigste Nummer. 7m-Treffer aus der Spalte „7m/ Tore" = **Versuche/verwandelte** → zweite
+  Zahl. `filterPlayersByTeam` entfernt bei Team-Statistik die Gegner.
   Nur **vollständige** Durchläufe (keine fehlgeschlagenen Berichte) werden gecacht:
-  `h4a:leaguestats:v2:${org}:${league}` bzw. `...:team:${normalizedTeam}` mit Signatur =
+  `h4a:leaguestats:v4:${org}:${league}` bzw. `...:team:${normalizedTeam}` mit Signatur =
   sGID-Liste, TTL `LEAGUE_STATS_TTL_MS`. Berichte sind unveränderlich → `REPORT_TTL_MS` jetzt
   **1 Jahr**.
-  Screen `LeagueScorersScreen` (App-States `statsNav`/`teamStatsNav`; erreichbar über
-  „Torschützenliste" in `LeagueDetail` bzw. `TeamScheduleScreen`) zeigt Fortschrittsbalken +
-  Tabelle (Rang/Nr./Spieler/Team/Sp/Tore/Feld/7m, sortiert nach Toren; Feld = Tore − 7m).
-  In der Team-Statistik entfällt die Team-Spalte; `totalGames`/`withReport` und „Basis x/y
-  Spiele" sind teambezogen. Favoriten-Team wird nur in der Liga-Ansicht hervorgehoben.
-  `useLeagueScorers` lädt nur bei sichtbarem Screen und verwirft laufende Ergebnisse beim
-  Verlassen (kein Polling).
+  Screen `LeagueStatsScreen` (App-States `statsNav`/`teamStatsNav` = `scorers`/`penalties`;
+  erreichbar über „Liga-Statistik" in `LeagueDetail` bzw. „Team-Statistik" in
+  `TeamScheduleScreen`) zeigt Tabs **Tore / Strafen**, Fortschrittsbalken und die jeweilige
+  Tabelle (Tore: Rang/Nr./Spieler/Team/Sp/Tore/Feld/7m; Strafen: Rang/Nr./Spieler/Team/Sp/
+  Gelb/2 Min/Rot/Blau/Gesamt). In der Team-Statistik entfällt die Team-Spalte;
+  `totalGames`/`withReport` und „Basis x/y Spiele" sind teambezogen. Favoriten-Team wird nur in
+  der Liga-Ansicht hervorgehoben. `useLeagueStats` lädt nur bei sichtbarem Screen und verwirft
+  laufende Ergebnisse beim Verlassen (kein Polling).
 - **Hallen-Spielplan**: alle Spiele einer Halle in einer Kalenderwoche (`GymScheduleScreen`,
   App-State `gymNav = { gymId, name, weekStart }`). `fetchGymSchedule` ruft `cmd=pgy` mit `do`
   auf, normalisiert `content.gList[].games` (Liga-Kurzname aus `gClassSname`) und

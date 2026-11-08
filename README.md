@@ -7,7 +7,7 @@ Mobile-first Web-App für Handball-Ergebnisse, Spielpläne und Statistiken im Ba
 - Ligen, Tabellen, Spielpläne und Live-Ticker
 - Spielberichte mit Spielerstatistik und Spielverlauf
 - Spielwoche der favorisierten Vereine und Mannschaften
-- Hallen-Spielplan und Torschützenlisten
+- Hallen-Spielplan sowie Torschützen- und Strafenstatistiken
 - Favoriten pro Gerät, Vereine für die Spielwoche sortierbar
 - Dark-/Light-Theme und PWA-Unterstützung
 

@@ -10,7 +10,7 @@ import {
 // handball4all-URL setzt keine CORS-Header. Deshalb holen wir den Text über
 // r.jina.ai (CORS-freigegeben) im Format "text" – dort hat jede PDF-Zeile eine
 // eigene Zeile, wodurch sich Mannschaftsliste und Spielverlauf auswerten lassen.
-const CACHE_PREFIX = 'h4a:report:v4'
+const CACHE_PREFIX = 'h4a:report:v5'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -256,6 +256,7 @@ const MILESTONE_RANK = 40
 // Die dritte Hinausstellung (2 Minuten) ist automatisch eine Disqualifikation.
 // Der Bericht protokolliert beim dritten Vergehen sowohl "2-min Strafe" als auch
 // "Disqualifikation" zur selben Zeit -> beide zu einer roten Karte zusammenfassen.
+// Diese indirekte rote Karte wird markiert; direkte rote Karten bleiben unmarkiert.
 function applyCardRules(events) {
   const groups = new Map()
   for (const event of events) {
@@ -274,6 +275,7 @@ function applyCardRules(events) {
       (e) => e.card === 'red' && e !== third && e.playTime === third.playTime,
     )
     third.card = 'red'
+    third.indirect = true
     if (duplicate) removed.add(duplicate)
   }
 
@@ -327,7 +329,13 @@ export function parseReport(text) {
     const target = team.players.find(
       (p) => p.nr === event.nr && normName(p.name) === normName(event.name),
     )
-    if (target) target.cards.push({ kind: event.card, time: event.playTime })
+    if (target) {
+      target.cards.push({
+        kind: event.card,
+        time: event.playTime,
+        indirect: Boolean(event.indirect),
+      })
+    }
   }
 
   // Kurzkürzel ("SG Hei/Hel/Gon") -> vollständiger Teamname für den Verlauf.

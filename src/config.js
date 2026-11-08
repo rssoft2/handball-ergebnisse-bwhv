@@ -1,5 +1,5 @@
 // App-Version (Anzeige im Footer)
-export const APP_VERSION = '1.20.0'
+export const APP_VERSION = '1.21.0'
 
 export const API_BASE = 'https://spo.handball4all.de/service/if_g_json.php'
 
@@ -64,7 +64,7 @@ export const REPORT_PROXY_BASE = 'https://r.jina.ai/'
 // Berichte sind nach Spielende unveränderlich -> lange zwischenspeichern.
 export const REPORT_TTL_MS = 365 * 24 * 60 * 60 * 1000
 
-// Liga-Statistik (Torschützenliste): aggregiert alle Berichte einer Liga.
+// Liga-/Team-Statistik (Tore + Strafen): aggregiert alle Berichte einer Liga.
 // Ergebnis wird signaturbasiert (Anzahl beendeter Spiele) zwischengespeichert.
 export const LEAGUE_STATS_TTL_MS = 7 * 24 * 60 * 60 * 1000
 // Zusätzliche Pause zwischen den Berichtsaufrufen (der Textdienst drosselt).

@@ -6,7 +6,7 @@ import { useFavorites } from './hooks/useFavorites.js'
 import { useReports } from './hooks/useReports.js'
 import { useLiveGames } from './hooks/useLiveGames.js'
 import { useScheduleWeek } from './hooks/useScheduleWeek.js'
-import { useLeagueScorers } from './hooks/useLeagueScorers.js'
+import { useLeagueStats } from './hooks/useLeagueStats.js'
 import { startOfDaysAgo } from './utils/format.js'
 import Header from './components/Header.jsx'
 import LeagueList from './components/LeagueList.jsx'
@@ -14,7 +14,7 @@ import LeagueDetail from './components/LeagueDetail.jsx'
 import ReportStatsScreen from './components/ReportStatsScreen.jsx'
 import ReportTimelineScreen from './components/ReportTimelineScreen.jsx'
 import LiveScreen from './components/LiveScreen.jsx'
-import LeagueScorersScreen from './components/LeagueScorersScreen.jsx'
+import LeagueStatsScreen from './components/LeagueStatsScreen.jsx'
 import TeamScheduleScreen from './components/TeamScheduleScreen.jsx'
 import GymScheduleScreen from './components/GymScheduleScreen.jsx'
 import { mondayIsoOf } from './utils/spieltag.js'
@@ -35,9 +35,9 @@ export default function App() {
   const [tab, setTab] = useState('browse')
   const [reportNav, setReportNav] = useState(null)
   const [liveNav, setLiveNav] = useState(null)
-  const [statsNav, setStatsNav] = useState(false)
+  const [statsNav, setStatsNav] = useState(null)
   const [teamNav, setTeamNav] = useState(null)
-  const [teamStatsNav, setTeamStatsNav] = useState(false)
+  const [teamStatsNav, setTeamStatsNav] = useState(null)
   const [gymNav, setGymNav] = useState(null)
   const favorites = useFavorites()
 
@@ -67,9 +67,9 @@ export default function App() {
   useEffect(() => {
     setReportNav(null)
     setLiveNav(null)
-    setStatsNav(false)
+    setStatsNav(null)
     setTeamNav(null)
-    setTeamStatsNav(false)
+    setTeamStatsNav(null)
     setGymNav(null)
   }, [selected])
 
@@ -94,13 +94,13 @@ export default function App() {
         (favorites.favorites.teams?.length ?? 0) > 0),
   })
 
-  // Liga-Statistik (Torschützenliste): alle Berichte der gewählten Liga laden.
-  const scorers = useLeagueScorers(ORG, selected, Boolean(selected) && statsNav)
+  // Liga-Statistik (Tore + Strafen): alle Berichte der gewählten Liga laden.
+  const scorers = useLeagueStats(ORG, selected, Boolean(selected) && Boolean(statsNav))
   // Team-Statistik: nur die Berichte der Spiele des gewählten Teams.
-  const teamScorers = useLeagueScorers(
+  const teamScorers = useLeagueStats(
     ORG,
     selected,
-    Boolean(selected) && teamStatsNav,
+    Boolean(selected) && Boolean(teamStatsNav),
     teamNav,
   )
 
@@ -125,9 +125,9 @@ export default function App() {
     if (!gym?.gymId) return
     setReportNav(null)
     setLiveNav(null)
-    setStatsNav(false)
+    setStatsNav(null)
     setTeamNav(null)
-    setTeamStatsNav(false)
+    setTeamStatsNav(null)
     setGymNav({
       gymId: String(gym.gymId),
       name: gym.name || '',
@@ -139,9 +139,13 @@ export default function App() {
   const inReport = Boolean(reportNav)
   const inLive = Boolean(liveNav)
   const inGym = Boolean(gymNav)
-  const inTeamStats = Boolean(selected) && Boolean(teamNav) && teamStatsNav
+  const inTeamStats = Boolean(selected) && Boolean(teamNav) && Boolean(teamStatsNav)
   const inTeam = Boolean(selected) && Boolean(teamNav) && !inTeamStats
-  const inScorers = Boolean(selected) && statsNav
+  const inScorers = Boolean(selected) && Boolean(statsNav)
+  const statsTab = statsNav || 'scorers'
+  const teamStatsTab = teamStatsNav || 'scorers'
+  const statsLabel = statsTab === 'penalties' ? 'Strafen' : 'Torschützen'
+  const teamStatsLabel = teamStatsTab === 'penalties' ? 'Strafen' : 'Torschützen'
   const data = detail.data
 
   const currentLeague = selected
@@ -178,8 +182,8 @@ export default function App() {
                     name: teamNav,
                     logoName: teamNav,
                     subtitle: data?.meta?.name
-                      ? `Torschützen · ${data.meta.name}`
-                      : 'Torschützen',
+                      ? `${teamStatsLabel} · ${data.meta.name}`
+                      : teamStatsLabel,
                   }
                 : inTeam
                   ? {
@@ -189,8 +193,10 @@ export default function App() {
                     }
                   : inScorers
                     ? {
-                        name: data?.meta?.name || 'Torschützenliste',
-                        subtitle: 'Torschützen',
+                        name:
+                          data?.meta?.name ||
+                          (statsTab === 'penalties' ? 'Strafenstatistik' : 'Torschützenliste'),
+                        subtitle: statsLabel,
                       }
                     : showingDetail
                       ? data?.meta
@@ -207,11 +213,11 @@ export default function App() {
               : inGym
                 ? () => setGymNav(null)
                 : inTeamStats
-                  ? () => setTeamStatsNav(false)
+                  ? () => setTeamStatsNav(null)
                   : inTeam
                     ? () => setTeamNav(null)
                     : inScorers
-                      ? () => setStatsNav(false)
+                      ? () => setStatsNav(null)
                       : showingDetail
                         ? () => setSelected('')
                         : undefined
@@ -288,7 +294,7 @@ export default function App() {
             onOpenGym={openGym}
           />
         ) : inTeamStats ? (
-          <LeagueScorersScreen
+          <LeagueStatsScreen
             status={teamScorers.status}
             data={teamScorers.data}
             progress={teamScorers.progress}
@@ -296,6 +302,8 @@ export default function App() {
             onReload={teamScorers.reload}
             favoriteTeams={favorites.favoriteTeams}
             teamName={teamNav}
+            tab={teamStatsTab}
+            onTabChange={setTeamStatsNav}
           />
         ) : inTeam ? (
           <TeamScheduleScreen
@@ -304,17 +312,19 @@ export default function App() {
             favoriteTeams={favorites.favoriteTeams}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}
-            onOpenScorers={() => setTeamStatsNav(true)}
+            onOpenStats={() => setTeamStatsNav('scorers')}
             onOpenGym={openGym}
           />
         ) : inScorers ? (
-          <LeagueScorersScreen
+          <LeagueStatsScreen
             status={scorers.status}
             data={scorers.data}
             progress={scorers.progress}
             error={scorers.error}
             onReload={scorers.reload}
             favoriteTeams={favorites.favoriteTeams}
+            tab={statsTab}
+            onTabChange={setStatsNav}
           />
         ) : showingDetail ? (
           <LeagueDetail
@@ -325,10 +335,10 @@ export default function App() {
             favoriteTeams={favorites.favoriteTeams}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}
-            onOpenScorers={() => setStatsNav(true)}
+            onOpenStats={() => setStatsNav('scorers')}
             onOpenTeam={(teamName) => {
               setTeamNav(teamName)
-              setTeamStatsNav(false)
+              setTeamStatsNav(null)
             }}
             onOpenGym={openGym}
           />

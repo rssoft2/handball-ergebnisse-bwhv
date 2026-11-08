@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v1.21.0
+- **Liga-/Team-Statistik**: Die Statistik hat den neuen Tabs „Strafen“. Die Strafen-Tabelle zählt Gelb, 2 Minuten, Rot und Blau; direkte rote Karten zählen in Rot und Gesamt doppelt, indirekte rote Karten aus der 3. Zeitstrafe einfach.
+
 ## v1.20.0
 - **Favoriten‑Sortierung**: Vereine lassen sich im Favoriten‑Tab über einen eigenen Sortier‑Modus mit Hoch-/Runter‑Pfeilen neu anordnen. Die gewählte Reihenfolge gilt für die Spielwoche; neue Vereine werden am Ende einsortiert.
 
