@@ -179,7 +179,7 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   `getReport`; Cache-Treffer aus IndexedDB überspringen die `LEAGUE_STATS_GAP_MS`-Pause. `aggregateScorers` summiert
   je Spieler Tore, 7m-Treffer, Spiele und Karten; nur Spieler mit `goals>0`, sortiert Tore↓ /
   Feld↓ / Name. `aggregatePenalties` zählt Gelb/2 Min/Rot/Blau, nur Spieler mit mindestens einer
-  Karte, sortiert Gesamt↓ / Rot↓ / 2 Min↓ / Gelb↓ / Blau↓ / Name. Direkte rote Karten zählen in
+  Karte, sortiert Gesamt↓ / 2 Min↓ / Rot↓ / Gelb↓ / Name. Direkte rote Karten zählen in
   Rot und Gesamt doppelt; indirekte rote Karten (3. Zeitstrafe) einfach. Spieler werden je Team **nur
   nach Name** zusammengefasst (Rückennummern wechseln zwischen Spielen), angezeigt wird die
   häufigste Nummer. 7m-Treffer aus der Spalte „7m/ Tore" = **Versuche/verwandelte** → zweite
@@ -192,7 +192,7 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   erreichbar über „Liga-Statistik" in `LeagueDetail` bzw. „Team-Statistik" in
   `TeamScheduleScreen`) zeigt Tabs **Tore / Strafen**, Fortschrittsbalken und die jeweilige
   Tabelle (Tore: Rang/Nr./Spieler/Team/Sp/Tore/Feld/7m; Strafen: Rang/Nr./Spieler/Team/Sp/
-  Gelb/2 Min/Rot/Blau/Gesamt). In der Team-Statistik entfällt die Team-Spalte;
+  Ges./2 Min/Rot/Gelb/Blau). In der Team-Statistik entfällt die Team-Spalte;
   `totalGames`/`withReport` und „Basis x/y Spiele" sind teambezogen. Favoriten-Team wird nur in
   der Liga-Ansicht hervorgehoben. `useLeagueStats` lädt nur bei sichtbarem Screen und verwirft
   laufende Ergebnisse beim Verlassen (kein Polling).

@@ -80,7 +80,7 @@ describe('aggregatePenalties', () => {
     expect(aggregatePenalties([report])[0]).toMatchObject({ red: 1, total: 1 })
   })
 
-  it('sortiert nach Gesamt, Rot, 2 Min, Gelb, Blau, Name', () => {
+  it('sortiert nach Gesamt, 2 Min, Rot, Gelb, Name', () => {
     expect(aggregatePenalties([penaltyReport]).map((p) => p.name)).toEqual([
       'Mehr Rot',
       'Rot',
@@ -89,6 +89,34 @@ describe('aggregatePenalties', () => {
       'Gelb',
       'Blau',
     ])
+  })
+
+  it('sortiert bei gleicher Gesamtzahl 2 Minuten vor Rot', () => {
+    const report = {
+      teams: [
+        {
+          label: 'HSG Ettlingen',
+          players: [
+            {
+              nr: '10',
+              name: 'Rot',
+              goals: 0,
+              seven: '0/0',
+              cards: [{ kind: 'red', indirect: true }],
+            },
+            {
+              nr: '11',
+              name: 'Zwei',
+              goals: 0,
+              seven: '0/0',
+              cards: [{ kind: 'two' }],
+            },
+          ],
+        },
+      ],
+    }
+
+    expect(aggregatePenalties([report]).map((p) => p.name)).toEqual(['Zwei', 'Rot'])
   })
 
   it('lässt die Torschützenliste unverändert', () => {

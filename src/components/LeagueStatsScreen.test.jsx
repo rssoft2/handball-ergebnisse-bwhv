@@ -50,8 +50,8 @@ describe('LeagueStatsScreen', () => {
       .map((th) => th.getAttribute('title') || th.textContent.trim())
     expect(headers.slice(-5)).toEqual([
       'Ges.',
-      'Rote Karten',
       '2-Minuten-Strafen',
+      'Rote Karten',
       'Gelbe Karten',
       'Blaue Karten',
     ])

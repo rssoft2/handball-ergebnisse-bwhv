@@ -169,8 +169,8 @@ function PenaltiesTable({ penalties, teamView, favoriteTeams }) {
               Sp
             </th>
             <th className="py-1 pl-1 text-right font-semibold sm:pl-2">Ges.</th>
-            <PenaltyCardHeader kind="red" label="Rote Karten" />
             <PenaltyCardHeader kind="two" label="2-Minuten-Strafen" />
+            <PenaltyCardHeader kind="red" label="Rote Karten" />
             <PenaltyCardHeader kind="yellow" label="Gelbe Karten" />
             <PenaltyCardHeader kind="blue" label="Blaue Karten" last />
           </tr>
@@ -208,10 +208,10 @@ function PenaltiesTable({ penalties, teamView, favoriteTeams }) {
                   {p.total}
                 </td>
                 <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">
-                  {p.red || ''}
+                  {p.two || ''}
                 </td>
                 <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">
-                  {p.two || ''}
+                  {p.red || ''}
                 </td>
                 <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">
                   {p.yellow || ''}

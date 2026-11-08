@@ -128,12 +128,19 @@ const byGoals = (a, b) =>
 
 const byPenalties = (a, b) =>
   b.total - a.total ||
-  b.red - a.red ||
   b.two - a.two ||
+  b.red - a.red ||
   b.yellow - a.yellow ||
-  b.blue - a.blue ||
-  a.name.localeCompare(b.name, 'de') ||
-  a.team.localeCompare(b.team, 'de')
+  a.name.localeCompare(b.name, 'de')
+
+// Cache-Einträge können mit einer älteren Sortierung gespeichert sein.
+function sortResult(result) {
+  return {
+    ...result,
+    scorers: [...(result.scorers || [])].sort(byGoals),
+    penalties: [...(result.penalties || [])].sort(byPenalties),
+  }
+}
 
 // Nur Spieler mit mindestens einem Tor.
 export function aggregateScorers(reports) {
@@ -176,7 +183,7 @@ export async function fetchLeagueStats(
 
   if (!force) {
     const cached = readCache(org, league, team)
-    if (cached && cached.signature === signature) return cached.v
+    if (cached && cached.signature === signature) return sortResult(cached.v)
   }
 
   const reports = []
@@ -220,6 +227,7 @@ export async function fetchLeagueStats(
     penalties,
   }
 
-  if (failed === 0) writeCache(org, league, team, signature, result)
-  return result
+  const sorted = sortResult(result)
+  if (failed === 0) writeCache(org, league, team, signature, sorted)
+  return sorted
 }
