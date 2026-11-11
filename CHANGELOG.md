@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## v1.22.0
+- **Team-Spielplan**: Kalender-Export als `.ics` für iPhone und Android. Der Export enthält alle Spiele (auch vergangene) ohne Ergebnisse, mit 90 Minuten Dauer, Ort, Liga sowie Heim- und Gastteam. Einmaliger Import, keine Kalender-Subscription.
 - **Liga-/Team-Statistik**: Torschützen-Tabelle um die Spalte **T/Sp** („Tore pro Spiel“, eine Nachkommastelle) ergänzt.
 
 ## v1.21.2

@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import MatchList from './MatchList.jsx'
 import StateMessage from './StateMessage.jsx'
 import { scheduleForTeam } from '../utils/teamSchedule.js'
+import { buildTeamCalendarIcs, teamCalendarFilename } from '../utils/ics.js'
+import { downloadFile } from '../utils/download.js'
 
 function Section({ title, subtitle, children }) {
   return (
@@ -15,7 +17,34 @@ function Section({ title, subtitle, children }) {
   )
 }
 
-function StatsButton({ title, hint, onClick }) {
+function CalendarButton({ onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Kalender exportieren"
+      title="Kalender exportieren (ICS)"
+      className="ml-auto flex w-12 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-muted shadow-sm transition hover:bg-surface2 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent active:scale-[0.99]"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5"
+        aria-hidden="true"
+      >
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M16 3v4M8 3v4M3 11h18" />
+        <path d="M12 14v5M9.5 16.5 12 19l2.5-2.5" />
+      </svg>
+    </button>
+  )
+}
+
+function ActionButton({ title, hint, onClick }) {
   return (
     <button
       type="button"
@@ -44,8 +73,13 @@ export default function TeamScheduleScreen({
   if (!data) return null
 
   const statsButton = onOpenStats ? (
-    <StatsButton title="Team-Statistik" hint="Tore & Strafen ›" onClick={onOpenStats} />
+    <ActionButton title="Team-Statistik" hint="Tore & Strafen ›" onClick={onOpenStats} />
   ) : null
+
+  const exportCalendar = () => {
+    const games = [...schedule.live, ...schedule.upcoming, ...schedule.played]
+    downloadFile(teamCalendarFilename(teamName), buildTeamCalendarIcs({ teamName, games }))
+  }
 
   if (total === 0) {
     return (
@@ -58,7 +92,15 @@ export default function TeamScheduleScreen({
 
   return (
     <div className="space-y-8">
-      {statsButton}
+      <div className="space-y-2">
+        <div className="flex items-stretch gap-2">
+          {statsButton ? <div className="min-w-0 flex-1">{statsButton}</div> : null}
+          <CalendarButton onClick={exportCalendar} />
+        </div>
+        <p className="px-1 text-xs text-faint">
+          iPhone: Nach dem Export die Datei in „Downloads“ öffnen.
+        </p>
+      </div>
 
       <Section
         title="Kommende Spiele"

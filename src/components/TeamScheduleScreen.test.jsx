@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import TeamScheduleScreen from './TeamScheduleScreen.jsx'
 import { mockGameLive, mockGamePlayed, mockGameUpcoming } from '../test/fixtures.js'
+
+vi.mock('../utils/download.js', () => ({ downloadFile: vi.fn() }))
+
+import { downloadFile } from '../utils/download.js'
 
 const data = {
   live: [mockGameLive],
@@ -13,6 +17,10 @@ const data = {
 }
 
 describe('TeamScheduleScreen', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('shows only the selected team in upcoming games and results', () => {
     render(
       <TeamScheduleScreen data={data} teamName="HSG Ettlingen" favoriteTeams={[]} />,
@@ -47,5 +55,29 @@ describe('TeamScheduleScreen', () => {
     await user.click(screen.getByRole('button', { name: /Team-Statistik/ }))
 
     expect(onOpenStats).toHaveBeenCalledTimes(1)
+  })
+
+  it('exports the team schedule as a calendar file', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TeamScheduleScreen data={data} teamName="HSG Ettlingen" favoriteTeams={[]} />,
+    )
+
+    const calendarButton = screen.getByRole('button', { name: /Kalender exportieren/ })
+    expect(calendarButton.textContent).toBe('')
+
+    await user.click(calendarButton)
+
+    expect(downloadFile).toHaveBeenCalledTimes(1)
+    const [filename, content] = downloadFile.mock.calls[0]
+    expect(filename).toBe('Spielplan-HSG-Ettlingen.ics')
+    expect(content).toContain('BEGIN:VCALENDAR')
+    expect(content).toContain('SUMMARY:HSG Ettlingen – TSV Beispiel')
+    expect(content).toContain('SUMMARY:TV Test – HSG Ettlingen')
+    expect(content).not.toContain('32:28')
+    expect(
+      screen.getByText('iPhone: Nach dem Export die Datei in „Downloads“ öffnen.'),
+    ).toBeInTheDocument()
   })
 })

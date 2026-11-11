@@ -43,6 +43,8 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/utils/spieltag.js` — Wochen-Auswahl + Gruppierung (`weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
 - `src/utils/teamSchedule.js` — Spielplan eines Teams aus den Liga-Spielen filtern (`scheduleForTeam`, `teamMatches`)
+- `src/utils/ics.js` — Team-Spielplan als iCalendar (`.ics`) erzeugen (`buildTeamCalendarIcs`, `teamCalendarFilename`)
+- `src/utils/download.js` — Datei-Download über Blob und `<a download>`
 - `src/utils/resin.js` — Haftmittel-Regel (`wax`) klassifizieren (`resinStatus`)
 - `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, TeamScheduleScreen, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueStatsScreen, ResinBadge
 - `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
@@ -124,6 +126,10 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   API-Call; der Screen kann von dort Bericht/Live-Ticker öffnen und kehrt dorthin zurück.
   Button „Team-Statistik" öffnet den Statistik-Screen (`teamStatsNav`) mit Teamname +
   Wappen im Header; die Tabs Tore/Strafen liegen im Screen. Zurück führt zum Team-Spielplan.
+  Button „Kalender exportieren" lädt den Spielplan als `.ics` (`utils/ics.js`) für den
+  einmaligen Import auf iPhone/Android herunter (`utils/download.js`). Enthalten sind alle
+  Spiele (live/kommend/vergangen) **ohne Ergebnisse**, je 90 Minuten, mit Ort, Liga und
+  Heim-/Gastteam; Zeitzone `Europe/Berlin` inklusive `VTIMEZONE`.
 - **Haftmittel**: `normalizeGame` legt `gymId` offen. `useGymResin` lädt `gymnasiumInfo.wax`
   lazy über `cmd=gi`, cached unter `gym:<org>:<id>` (`GYM_TTL_MS`, 7 Tage) und reiht Anfragen
   nacheinander mit `REQUEST_GAP_MS` ein. `resinStatus` klassifiziert den Freitext heuristisch:
