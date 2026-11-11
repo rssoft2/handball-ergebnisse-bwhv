@@ -97,9 +97,6 @@ export default function TeamScheduleScreen({
           {statsButton ? <div className="min-w-0 flex-1">{statsButton}</div> : null}
           <CalendarButton onClick={exportCalendar} />
         </div>
-        <p className="px-1 text-xs text-faint">
-          iPhone: Nach dem Export die Datei in „Downloads“ öffnen.
-        </p>
       </div>
 
       <Section

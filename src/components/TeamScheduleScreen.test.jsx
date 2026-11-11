@@ -76,8 +76,5 @@ describe('TeamScheduleScreen', () => {
     expect(content).toContain('SUMMARY:HSG Ettlingen – TSV Beispiel')
     expect(content).toContain('SUMMARY:TV Test – HSG Ettlingen')
     expect(content).not.toContain('32:28')
-    expect(
-      screen.getByText('iPhone: Nach dem Export die Datei in „Downloads“ öffnen.'),
-    ).toBeInTheDocument()
   })
 })
