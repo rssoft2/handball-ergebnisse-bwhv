@@ -12,7 +12,7 @@
 |   9  | Mannschafts-Statistik (Spieler) | Fertig
 |  10  | Hallen-Spielplan | Fertig
 |  11  | Strafen-Statistik | Fertig
-|   -  | Mannschafts-Kalender exportieren |
+|  12  | Mannschafts-Kalender exportieren | Fertig
 
 # Professionalisierung
 | Prio | Feature | Status |

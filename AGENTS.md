@@ -191,7 +191,7 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   Screen `LeagueStatsScreen` (App-States `statsNav`/`teamStatsNav` = `scorers`/`penalties`;
   erreichbar über „Liga-Statistik" in `LeagueDetail` bzw. „Team-Statistik" in
   `TeamScheduleScreen`) zeigt Tabs **Tore / Strafen**, Fortschrittsbalken und die jeweilige
-  Tabelle (Tore: Rang/Nr./Spieler/Team/Sp/Tore/Feld/7m; Strafen: Rang/Nr./Spieler/Team/Sp/
+  Tabelle (Tore: Rang/Nr./Spieler/Team/Sp/Tore/T-Sp/Feld/7m; Strafen: Rang/Nr./Spieler/Team/Sp/
   Ges./2 Min/Rot/Gelb/Blau). In der Team-Statistik entfällt die Team-Spalte;
   `totalGames`/`withReport` und „Basis x/y Spiele" sind teambezogen. Favoriten-Team wird nur in
   der Liga-Ansicht hervorgehoben. `useLeagueStats` lädt nur bei sichtbarem Screen und verwirft

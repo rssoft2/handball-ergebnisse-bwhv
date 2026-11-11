@@ -1,8 +1,10 @@
 # CHANGELOG
 
+## v1.22.0
+- **Liga-/Team-Statistik**: Torschützen-Tabelle um die Spalte **T/Sp** („Tore pro Spiel“, eine Nachkommastelle) ergänzt.
+
 ## v1.21.2
-- **Liga-/Team-Statistik**: Gewichtung und Sortierung Strafen-Statistik:  Gesamt-Anzahl Strafen ↓, dann 2-Min ↓, dann Rot ↓, dann Gelb ↓, dann Name.
-Direkte Rote Karten werden doppelt gewertet.
+- **Liga-/Team-Statistik**: Gewichtung und Sortierung der Strafen-Statistik: Gesamt-Anzahl Strafen ↓, dann 2-Min ↓, dann Rot ↓, dann Gelb ↓, dann Name. Direkte Rote Karten werden doppelt gewertet.
 
 ## v1.21.1
 - **Spielbericht-Cache**: Geparste Spielberichte werden dauerhaft in IndexedDB gespeichert, inklusive Rohtext und Parser-Version. Einmal geladene Berichte werden nicht erneut heruntergeladen; bestehende localStorage-Berichte werden migriert. Bei künftigen Parser-Änderungen wird aus dem Rohtext neu geparst.

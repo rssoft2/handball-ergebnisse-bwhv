@@ -57,6 +57,15 @@ function StatsTabs({ tab, onChange }) {
   )
 }
 
+function goalsPerGame(player) {
+  const games = Number(player.games) || 0
+  if (!games) return ''
+  return (player.goals / games).toLocaleString('de-DE', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+}
+
 function ScorersTable({ scorers, teamView, favoriteTeams }) {
   return (
     <div className="-mx-1 overflow-x-auto px-1">
@@ -77,6 +86,12 @@ function ScorersTable({ scorers, teamView, favoriteTeams }) {
               Sp
             </th>
             <th className="py-1 pl-1 text-right font-semibold sm:pl-2">Tore</th>
+            <th
+              className="hidden py-1 pl-1 text-right font-semibold sm:table-cell sm:pl-2"
+              title="Tore pro Spiel"
+            >
+              T/Sp
+            </th>
             <th className="py-1 pl-1 text-right font-semibold sm:pl-2" title="Feldtore (ohne 7m)">
               Feld
             </th>
@@ -114,6 +129,9 @@ function ScorersTable({ scorers, teamView, favoriteTeams }) {
                 <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">{p.games}</td>
                 <td className="py-1 pl-1 text-right font-bold tabular-nums text-ink sm:pl-2">
                   {p.goals}
+                </td>
+                <td className="hidden py-1 pl-1 text-right tabular-nums text-muted sm:table-cell sm:pl-2">
+                  {goalsPerGame(p)}
                 </td>
                 <td className="py-1 pl-1 text-right tabular-nums text-muted sm:pl-2">
                   {p.goals - p.seven || ''}

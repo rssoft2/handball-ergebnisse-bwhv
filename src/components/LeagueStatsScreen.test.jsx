@@ -31,6 +31,8 @@ describe('LeagueStatsScreen', () => {
     expect(screen.getByRole('tab', { name: 'Tore' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Team')).toBeInTheDocument()
     expect(screen.getByText('Max Muster')).toBeInTheDocument()
+    expect(screen.getByTitle('Tore pro Spiel')).toBeInTheDocument()
+    expect(screen.getByText('3,0')).toBeInTheDocument()
   })
 
   it('wechselt auf die Strafen-Tabelle', () => {
