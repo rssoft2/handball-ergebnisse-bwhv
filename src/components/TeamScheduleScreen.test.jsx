@@ -61,7 +61,12 @@ describe('TeamScheduleScreen', () => {
     const user = userEvent.setup()
 
     render(
-      <TeamScheduleScreen data={data} teamName="HSG Ettlingen" favoriteTeams={[]} />,
+      <TeamScheduleScreen
+        data={data}
+        teamName="HSG Ettlingen"
+        leagueShortName="mb-BL-SR"
+        favoriteTeams={[]}
+      />,
     )
 
     const calendarButton = screen.getByRole('button', { name: /Kalender exportieren/ })
@@ -73,8 +78,8 @@ describe('TeamScheduleScreen', () => {
     const [filename, content] = downloadFile.mock.calls[0]
     expect(filename).toBe('Spielplan-HSG-Ettlingen.ics')
     expect(content).toContain('BEGIN:VCALENDAR')
-    expect(content).toContain('SUMMARY:HSG Ettlingen – TSV Beispiel')
-    expect(content).toContain('SUMMARY:TV Test – HSG Ettlingen')
+    expect(content).toContain('SUMMARY:[mb-BL-SR] HSG Ettlingen – TSV Beispiel')
+    expect(content).toContain('SUMMARY:[mb-BL-SR] TV Test – HSG Ettlingen')
     expect(content).not.toContain('32:28')
   })
 })

@@ -60,6 +60,7 @@ function ActionButton({ title, hint, onClick }) {
 export default function TeamScheduleScreen({
   data,
   teamName,
+  leagueShortName,
   favoriteTeams,
   onOpenReport,
   onOpenLive,
@@ -78,7 +79,10 @@ export default function TeamScheduleScreen({
 
   const exportCalendar = () => {
     const games = [...schedule.live, ...schedule.upcoming, ...schedule.played]
-    downloadFile(teamCalendarFilename(teamName), buildTeamCalendarIcs({ teamName, games }))
+    downloadFile(
+      teamCalendarFilename(teamName),
+      buildTeamCalendarIcs({ teamName, leagueShortName, games }),
+    )
   }
 
   if (total === 0) {

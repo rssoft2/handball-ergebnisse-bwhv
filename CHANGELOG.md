@@ -1,7 +1,10 @@
 # CHANGELOG
 
+## v1.22.1
+- **Team-Spielplan**: Kalender-Export: Titel trägt das Liga-Kürzel voran (z. B. `[mb-BL-SR]`).
+
 ## v1.22.0
-- **Team-Spielplan**: Kalender-Export als `.ics` für iPhone und Android. Der Export enthält alle Spiele (auch vergangene) ohne Ergebnisse, mit 90 Minuten Dauer, Ort, Liga sowie Heim- und Gastteam. Einmaliger Import, keine Kalender-Subscription.
+- **Team-Spielplan**: Kalender-Export als `.ics` für iPhone und Android. Der Export enthält alle Spiele (auch vergangene) ohne Ergebnisse, mit 90 Minuten Dauer, Ort, Liga sowie Heim- und Gastteam. Der Titel trägt das Liga-Kürzel voran (z. B. `[mb-BL-SR]`). Einmaliger Import, keine Kalender-Subscription.
 - **Liga-/Team-Statistik**: Torschützen-Tabelle um die Spalte **T/Sp** („Tore pro Spiel“, eine Nachkommastelle) ergänzt.
 
 ## v1.21.2

@@ -51,6 +51,28 @@ describe('buildTeamCalendarIcs', () => {
     expect(ics.indexOf('UID:g1@')).toBeLessThan(ics.indexOf('UID:g2@'))
   })
 
+  it('stellt das Liga-Kürzel im Titel voran', () => {
+    const ics = buildTeamCalendarIcs({
+      teamName: 'HSG Ettlingen',
+      leagueShortName: 'mb-BL-SR',
+      games: [played],
+      now,
+    })
+
+    expect(ics).toContain('SUMMARY:[mb-BL-SR] HSG Ettlingen – TSV Beispiel')
+  })
+
+  it('lässt den Titel ohne Liga-Kürzel unverändert', () => {
+    const ics = buildTeamCalendarIcs({
+      teamName: 'HSG Ettlingen',
+      leagueShortName: '   ',
+      games: [played],
+      now,
+    })
+
+    expect(ics).toContain('SUMMARY:HSG Ettlingen – TSV Beispiel')
+  })
+
   it('setzt Start, Ende und Ort korrekt', () => {
     const ics = buildTeamCalendarIcs({
       teamName: 'HSG Ettlingen',

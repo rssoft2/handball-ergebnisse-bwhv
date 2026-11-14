@@ -147,12 +147,15 @@ export default function App() {
   const statsLabel = statsTab === 'penalties' ? 'Strafen' : 'Torschützen'
   const teamStatsLabel = teamStatsTab === 'penalties' ? 'Strafen' : 'Torschützen'
   const data = detail.data
+  const selectedLeague = selected
+    ? leagues.data?.find((l) => l.id === selected)
+    : null
 
   const currentLeague = selected
     ? {
         id: String(selected),
-        name: data?.meta?.name || leagues.data?.find((l) => l.id === selected)?.name || '',
-        level: leagues.data?.find((l) => l.id === selected)?.level || '',
+        name: data?.meta?.name || selectedLeague?.name || '',
+        level: selectedLeague?.level || '',
       }
     : null
 
@@ -309,6 +312,7 @@ export default function App() {
           <TeamScheduleScreen
             data={data}
             teamName={teamNav}
+            leagueShortName={selectedLeague?.sname}
             favoriteTeams={favorites.favoriteTeams}
             onOpenReport={(game, kind) => setReportNav({ game, kind })}
             onOpenLive={(game) => setLiveNav(game)}

@@ -129,7 +129,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   Button „Kalender exportieren" lädt den Spielplan als `.ics` (`utils/ics.js`) für den
   einmaligen Import auf iPhone/Android herunter (`utils/download.js`). Enthalten sind alle
   Spiele (live/kommend/vergangen) **ohne Ergebnisse**, je 90 Minuten, mit Ort, Liga und
-  Heim-/Gastteam; Zeitzone `Europe/Berlin` inklusive `VTIMEZONE`.
+  Heim-/Gastteam; Zeitzone `Europe/Berlin` inklusive `VTIMEZONE`. Der Event-Titel trägt das
+  Liga-Kürzel voran (`[mb-BL-SR] Heim – Gast`), sofern die Liga eines hat.
 - **Haftmittel**: `normalizeGame` legt `gymId` offen. `useGymResin` lädt `gymnasiumInfo.wax`
   lazy über `cmd=gi`, cached unter `gym:<org>:<id>` (`GYM_TTL_MS`, 7 Tage) und reiht Anfragen
   nacheinander mit `REQUEST_GAP_MS` ein. `resinStatus` klassifiziert den Freitext heuristisch:

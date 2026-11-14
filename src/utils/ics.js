@@ -119,10 +119,11 @@ function uidFor(game) {
   return `${safe || 'spiel'}@handball-ergebnisse-bwhv`
 }
 
-function eventFor(game, when, stamp) {
+function eventFor(game, when, stamp, leagueShortName) {
   const home = String(game?.home ?? '').trim()
   const away = String(game?.away ?? '').trim()
   const league = String(game?.leagueName ?? '').trim()
+  const shortLeague = String(leagueShortName ?? '').trim()
   const venue = String(game?.venue ?? '').trim()
   const street = String(game?.street ?? '').trim()
   const postal = String(game?.postal ?? '').trim()
@@ -152,7 +153,8 @@ function eventFor(game, when, stamp) {
     lines.push(`DTEND;VALUE=DATE:${icsDate(addDays(when, 1))}`)
   }
 
-  lines.push(`SUMMARY:${escapeText([home, away].filter(Boolean).join(' – ') || 'Handballspiel')}`)
+  const title = [home, away].filter(Boolean).join(' – ') || 'Handballspiel'
+  lines.push(`SUMMARY:${escapeText(shortLeague ? `[${shortLeague}] ${title}` : title)}`)
 
   const location = [venue, street, [postal, town].filter(Boolean).join(' ')]
     .filter(Boolean)
@@ -168,7 +170,7 @@ function eventFor(game, when, stamp) {
   return lines
 }
 
-export function buildTeamCalendarIcs({ teamName, games, now = new Date() }) {
+export function buildTeamCalendarIcs({ teamName, leagueShortName, games, now = new Date() }) {
   const stamp = utcStamp(now)
   const seen = new Set()
   const entries = []
@@ -198,7 +200,7 @@ export function buildTeamCalendarIcs({ teamName, games, now = new Date() }) {
   ]
 
   for (const entry of entries) {
-    lines.push(...eventFor(entry.game, entry.when, stamp))
+    lines.push(...eventFor(entry.game, entry.when, stamp, leagueShortName))
   }
 
   lines.push('END:VCALENDAR')
