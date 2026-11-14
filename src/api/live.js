@@ -152,7 +152,7 @@ function playerLookup(team) {
 
 // Nachrichten um Spielernamen ergänzen und dabei die Statistik je Spieler
 // aufbauen (Tore, 7m, Karten) sowie das 40. Tor einer Mannschaft markieren.
-function buildActions(baseTeams, actions) {
+export function buildActions(baseTeams, actions) {
   const enriched = {}
   const lookup = {}
   for (const side of ['home', 'away']) {
@@ -167,14 +167,15 @@ function buildActions(baseTeams, actions) {
   }
 
   const counts = { home: 0, away: 0 }
-  let milestone = null
+  const milestones = []
 
   const list = actions.map((a) => {
     const sideLabel = a.side === 'home' ? 'Heim' : a.side === 'away' ? 'Gast' : null
     const player = a.nr ? lookup[a.side]?.get(String(Number(a.nr))) : null
     const name = player?.name ?? ''
+    let isMilestone = false
 
-    if (a.kind === 'goal' || a.kind === 'seven') {
+    if ((a.kind === 'goal' || a.kind === 'seven') && a.side) {
       counts[a.side] += 1
       enriched[a.side].goals += 1
       if (player) {
@@ -184,19 +185,31 @@ function buildActions(baseTeams, actions) {
           player.sevenAttempts = (player.sevenAttempts || 0) + 1
         }
       }
+      if (counts[a.side] === MILESTONE_RANK) {
+        milestones.push({
+          rank: MILESTONE_RANK,
+          side: a.side === 'home',
+          name,
+          nr: player?.nr ?? a.nr,
+        })
+        isMilestone = true
+      }
     } else if (a.kind === 'missed' && a.side && player) {
       player.sevenAttempts = (player.sevenAttempts || 0) + 1
-      if (!milestone && counts[a.side] === MILESTONE_RANK) {
-        milestone = { rank: MILESTONE_RANK, side: a.side === 'home', name, nr: player?.nr ?? a.nr }
-      }
     } else if (CARD_KINDS.has(a.kind) && player) {
       player.cards.push({ kind: a.kind })
     }
 
-    return { ...a, name, message: formatMessage(a, sideLabel, name) }
+    return {
+      ...a,
+      name,
+      message: formatMessage(a, sideLabel, name),
+      isMilestone,
+      milestoneRank: isMilestone ? MILESTONE_RANK : null,
+    }
   })
 
-  return { teams: enriched, actions: list, milestone }
+  return { teams: enriched, actions: list, milestones }
 }
 
 // Steckbrief + Kader ändern sich während des Spiels nicht – einmal laden und
@@ -230,6 +243,6 @@ export async function fetchLiveSnapshot(token) {
     tickerCall(token, 'getAllTickerMessages').catch(() => []),
   ])
 
-  const { teams, actions: list, milestone } = buildActions(base.teams, normalizeActions(actions))
-  return { info: base.info, teams, actions: list, milestone }
+  const { teams, actions: list, milestones } = buildActions(base.teams, normalizeActions(actions))
+  return { info: base.info, teams, actions: list, milestones }
 }

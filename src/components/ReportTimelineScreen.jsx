@@ -42,7 +42,7 @@ export default function ReportTimelineScreen({ report, game, favoriteTeams }) {
     )
   }
 
-  const milestone = data.milestone
+  const milestones = data.milestones ?? (data.milestone ? [data.milestone] : [])
   // Neueste Aktion oben, Spielanfang unten.
   const orderedEvents = [...data.events].reverse()
 
@@ -56,12 +56,14 @@ export default function ReportTimelineScreen({ report, game, favoriteTeams }) {
             event.type === 'timeout'
               ? event.teamLabel
               : data.codeLabels[event.teamCode] || event.teamCode
-          const isMilestone =
-            milestone &&
-            event.type === 'goal' &&
-            !event.missed &&
-            event.side === milestone.side &&
-            event.teamGoalRank === milestone.rank
+          const milestone = milestones.find(
+            (m) =>
+              event.type === 'goal' &&
+              !event.missed &&
+              event.side === m.side &&
+              event.teamGoalRank === m.rank,
+          )
+          const isMilestone = Boolean(milestone)
           return (
             <li
               key={`${event.clock}-${index}`}

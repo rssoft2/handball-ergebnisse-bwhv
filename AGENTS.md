@@ -168,8 +168,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
     `7m, KEIN Tor durch`; `Auszeit …`; Karten `Verwarnung für` (gelb), `2-min Strafe für` (»2«-Karte),
     `Disqualifikation für` (rot), `Disqualifikation mit Bericht für` (blau). Karten werden über
     Team-Kürzel + Nr./Name den Spielern der Mannschaftsliste zugeordnet (Offizielle ohne Nr. fallen weg).
-  - **40. Tor**: `milestone` markiert den Spieler des 40. Tores **einer Mannschaft** (nicht des
-    Spiels insgesamt; `teamGoalRank` je Seite). Hervorhebung in Statistik + Verlauf. Oft `null`.
+  - **40. Tor**: `milestones` markiert je Mannschaft den Spieler des 40. Tores (nicht des
+    Spiels insgesamt; `teamGoalRank` je Seite). Hervorhebung in Statistik + Verlauf. Meist leer.
   Die Team-Summen der Mannschaftsliste entsprechen dem Endstand. `ReportCards.jsx` rendert die Karten
   (gelb/rot/blau als farbige Rechtecke, 2 Min als invertierte Karte mit »2'«). Die **3. Hinausstellung**
   ist automatisch rot (der Bericht loggt dann zusätzlich eine Disqualifikation zur selben Zeit →
@@ -235,11 +235,13 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   `7m-Wurf für Gast: Kein Treffer`). Nummer via `/Nummer\s+(\d+)/`, Seite aus „Heim-/Gastmannschaft".
   **Achtung**: Karten nennen die Nummer **vor** dem Team („… für die Nummer 7 der Heimmannschaft"),
   verworfene 7m haben **keine** Nummer. `buildActions` zählt Tore (goal + 7m-Tor) je Spieler,
-  7m-Tore, Karten und markiert das 40. Tor einer Mannschaft (`milestone`); Team-Tore = Summe.
-  `resolvePlayerNames` entfällt (steckt jetzt in `buildActions`). Der Live-Screen hat zwei Tabs **Ticker** /
-  **Aufstellung**: `Lineup` zeigt je Team dieselbe Statistik-Tabelle wie der Spielbericht über die
-  gemeinsame Komponente `PlayerStats.jsx` (`TeamStats`, inkl. `isMilestonePlayer`; auch von
-  `ReportStatsScreen` genutzt), Spieler aus `teams.home/away.players`. `normalizeTeam` filtert
+  7m-Tore, Karten und markiert das 40. Tor je Mannschaft (`milestones`, `isMilestone` /
+  `milestoneRank` an der Aktion); Team-Tore = Summe. Der **Ticker** hebt beide Aktionen mit
+  „40. Tor“ hervor. `resolvePlayerNames` entfällt (steckt jetzt in `buildActions`). Der
+  Live-Screen hat zwei Tabs **Ticker** / **Aufstellung**: `Lineup` zeigt je Team dieselbe
+  Statistik-Tabelle wie der Spielbericht über die gemeinsame Komponente `PlayerStats.jsx`
+  (`TeamStats`, inkl. `milestoneFor`; auch von `ReportStatsScreen` genutzt), Spieler aus
+  `teams.home/away.players`. `normalizeTeam` filtert
   Offizielle (Buchstaben als `player_no`) heraus und sortiert nach Nummer.
 - **Spielwoche** (Startseiten-Tab): alle Spiele der Favoriten-Vereine einer Kalenderwoche
   (Mo–So, `SpielwocheView`), je Verein auf-/zuklappbar und nach Tag gruppiert. Wochen-Navigation per Pfeilen und Dropdown

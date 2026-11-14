@@ -20,6 +20,30 @@ function sevenCell(name) {
 }
 
 describe('TeamStats', () => {
+  it('markiert das 40. Tor je Mannschaft', () => {
+    const milestones = [
+      { rank: 40, side: true, name: 'Getroffen', nr: '3' },
+      { rank: 40, side: false, name: 'Gast', nr: '9' },
+    ]
+
+    render(
+      <>
+        <TeamStats team={team} milestones={milestones} />
+        <TeamStats
+          team={{
+            side: 'away',
+            label: 'Gegner',
+            goals: 1,
+            players: [{ nr: '9', name: 'Gast', goals: 1, seven: 0, cards: [] }],
+          }}
+          milestones={milestones}
+        />
+      </>,
+    )
+
+    expect(screen.getAllByText(/40\.\s*Tor/)).toHaveLength(2)
+  })
+
   it('lässt die 7m-Anzeige ohne Wurf leer', () => {
     render(<TeamStats team={team} />)
     expect(sevenCell('Ohne Wurf').textContent).toBe('')

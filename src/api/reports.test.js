@@ -21,7 +21,50 @@ const reportText = [
   '00:05:00  05:00  Disqualifikation für Erik Beispiel (3, SGGEG)',
 ].join('\n')
 
+function reportTextWithTwoMilestones() {
+  const events = []
+  let home = 0
+  let away = 0
+  const addGoal = (side) => {
+    if (side === 'home') home += 1
+    else away += 1
+    const index = events.length
+    const seconds = (index + 1) * 30
+    const clock = `00:${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+    const playTime = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+    const name = side === 'home' ? 'Max Muster' : 'Erik Beispiel'
+    const nr = side === 'home' ? '7' : '9'
+    const code = side === 'home' ? 'TVF' : 'SGHEIHELGON2'
+    events.push(`${clock}  ${playTime}  ${home}:${away}  Tor durch ${name} (${nr}, ${code})`)
+  }
+
+  for (let i = 1; i <= 40; i += 1) addGoal('home')
+  for (let i = 1; i <= 40; i += 1) addGoal('away')
+  for (let i = 41; i <= 46; i += 1) addGoal('home')
+  for (let i = 41; i <= 51; i += 1) addGoal('away')
+
+  return [
+    'Heim - Gast TV Forst - SG Hei/Hel/Gon 2 Endstand 46:51 (23:25)',
+    'Heim: TV Forst',
+    '7 Max Muster 2020 46',
+    'Gast: SG Hei/Hel/Gon 2',
+    '9 Erik Beispiel 2020 51',
+    'Spielverlauf',
+    ...events,
+  ].join('\n')
+}
+
 describe('parseReport', () => {
+  it('markiert das 40. Tor beider Mannschaften', () => {
+    const report = parseReport(reportTextWithTwoMilestones())
+
+    expect(report.milestones).toHaveLength(2)
+    expect(report.milestones).toEqual([
+      expect.objectContaining({ rank: 40, side: true, name: 'Max Muster', nr: '7' }),
+      expect.objectContaining({ rank: 40, side: false, name: 'Erik Beispiel', nr: '9' }),
+    ])
+  })
+
   it('markiert die rote Karte aus der dritten Zeitstrafe als indirekt', () => {
     const report = parseReport(reportText)
     const max = report.teams[0].players[0]

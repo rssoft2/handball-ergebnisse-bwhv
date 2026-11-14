@@ -16,7 +16,7 @@ import {
 // eigene Zeile, wodurch sich Mannschaftsliste und Spielverlauf auswerten lassen.
 // Geparster Bericht + Rohtext liegen dauerhaft in IndexedDB; die Parser-Version
 // erlaubt späteres Reparse ohne erneuten Download.
-export const REPORT_PARSER_VERSION = 1
+export const REPORT_PARSER_VERSION = 2
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const pendingReports = new Map()
@@ -380,7 +380,7 @@ export function parseReport(text) {
   // zu finden (nicht das 40. Tor des Spiels insgesamt).
   const codeLabels = {}
   const teamGoalCount = { home: 0, away: 0 }
-  let milestone = null
+  const milestones = []
   for (const event of events) {
     if (event.type === 'timeout' || !event.teamCode) continue
     const isHome = resolveIsHome(event.teamCode, meta.homeFull, meta.awayFull)
@@ -397,8 +397,8 @@ export function parseReport(text) {
       const key = isHome ? 'home' : 'away'
       teamGoalCount[key] += 1
       event.teamGoalRank = teamGoalCount[key]
-      if (!milestone && event.teamGoalRank === MILESTONE_RANK) {
-        milestone = {
+      if (event.teamGoalRank === MILESTONE_RANK) {
+        milestones.push({
           rank: MILESTONE_RANK,
           side: isHome,
           name: event.name,
@@ -407,7 +407,7 @@ export function parseReport(text) {
           clock: event.clock,
           playTime: event.playTime,
           score: event.score,
-        }
+        })
       }
     }
   }
@@ -420,6 +420,6 @@ export function parseReport(text) {
     teams: rosterTeams,
     hasData: events.length > 0,
     hasRoster: rosterTeams.some((team) => team.players.length > 0),
-    milestone,
+    milestones,
   }
 }

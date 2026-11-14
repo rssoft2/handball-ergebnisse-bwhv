@@ -69,7 +69,7 @@ const VIEWS = [
 
 // Aufstellung beider Mannschaften mit Spielerstatistik (Nr., Name, Tore, 7m,
 // Karten) – gleiche Darstellung wie im vollständigen Spielbericht.
-function Lineup({ teams, home, away, favoriteTeams, milestone }) {
+function Lineup({ teams, home, away, favoriteTeams, milestones }) {
   const sides = [
     { side: 'home', fallback: home, team: teams.home },
     { side: 'away', fallback: away, team: teams.away },
@@ -85,7 +85,7 @@ function Lineup({ teams, home, away, favoriteTeams, milestone }) {
             goals: side.team?.goals ?? 0,
             players: side.team?.players ?? [],
           }}
-          milestone={milestone}
+          milestones={milestones}
           favorite={isFavoriteTeam(side.fallback, favoriteTeams)}
         />
       ))}
@@ -208,7 +208,7 @@ export default function LiveScreen({ game, favoriteTeams }) {
           home={home}
           away={away}
           favoriteTeams={favoriteTeams}
-          milestone={data.milestone}
+          milestones={data.milestones}
         />
       ) : actions.length === 0 ? (
         <StateMessage emptyText="Das Spiel läuft – noch keine Aktionen gemeldet." />
@@ -222,7 +222,9 @@ export default function LiveScreen({ game, favoriteTeams }) {
           {actions.map((action, index) => (
             <li
               key={`${action.time}-${action.kind}-${index}`}
-              className="flex items-center gap-3 border-b border-line px-3 py-2 last:border-b-0"
+              className={`flex items-center gap-3 border-b border-line px-3 py-2 last:border-b-0 ${
+                action.isMilestone ? 'bg-accentsoft' : ''
+              }`}
             >
               <span className="w-11 shrink-0 text-xs tabular-nums text-faint">
                 {formatClock(action.time)}
@@ -232,7 +234,16 @@ export default function LiveScreen({ game, favoriteTeams }) {
                   ? `${action.homeScore}:${action.guestScore}`
                   : '–'}
               </span>
-              <span className="min-w-0 flex-1 text-sm text-ink">{action.message}</span>
+              <span
+                className={`min-w-0 flex-1 text-sm ${action.isMilestone ? 'text-accent' : 'text-ink'}`}
+              >
+                {action.message}
+                {action.isMilestone ? (
+                  <span className="ml-1 inline-block whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-bold text-accentink">
+                    {action.milestoneRank ?? 40}.&nbsp;Tor
+                  </span>
+                ) : null}
+              </span>
               <KindBadge kind={action.kind} />
             </li>
           ))}

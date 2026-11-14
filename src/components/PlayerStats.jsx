@@ -13,16 +13,15 @@ function sevenValue(seven) {
   return seven
 }
 
-function isMilestonePlayer(team, player, milestone) {
-  if (!milestone) return false
-  if (milestone.side === true && team.side !== 'home') return false
-  if (milestone.side === false && team.side !== 'away') return false
-  return player.name === milestone.name && player.nr === milestone.nr
+function milestoneFor(team, player, milestones) {
+  const list = Array.isArray(milestones) ? milestones : milestones ? [milestones] : []
+  const side = team.side === 'home'
+  return list.find((m) => m.side === side && m.name === player.name && m.nr === player.nr) ?? null
 }
 
 // Spielerstatistik-Tabelle einer Mannschaft (Nr., Spieler, Tore, 7m, Karten).
-// Wird im vollständigen Spielbericht und in der Live-Aufstellung verwendet.
-export function TeamStats({ team, milestone, favorite }) {
+// Wird im vollst��ndigen Spielbericht und in der Live-Aufstellung verwendet.
+export function TeamStats({ team, milestones, favorite }) {
   const role = team.side === 'home' ? 'Heim' : 'Gast'
   return (
     <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm">
@@ -50,16 +49,16 @@ export function TeamStats({ team, milestone, favorite }) {
         </thead>
         <tbody>
           {team.players.map((p) => {
-            const milestoneRow = isMilestonePlayer(team, p, milestone)
+            const milestone = milestoneFor(team, p, milestones)
             return (
               <tr
                 key={`${p.nr}-${p.name}`}
-                className={`border-t border-line ${milestoneRow ? 'bg-accentsoft' : ''}`}
+                className={`border-t border-line ${milestone ? 'bg-accentsoft' : ''}`}
               >
                 <td className="py-1 tabular-nums text-faint">{p.nr}</td>
                 <td className="py-1 text-ink">
-                  <span className={milestoneRow ? 'font-bold text-accent' : ''}>{p.name}</span>
-                  {milestoneRow ? (
+                  <span className={milestone ? 'font-bold text-accent' : ''}>{p.name}</span>
+                  {milestone ? (
                     <span className="ml-1 inline-block whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-bold text-accentink">
                       {milestone.rank}.&nbsp;Tor
                     </span>

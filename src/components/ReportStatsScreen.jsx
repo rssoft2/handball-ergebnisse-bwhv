@@ -8,6 +8,7 @@ export default function ReportStatsScreen({ report, game, favoriteTeams }) {
 
   const data = report.data
   if (!data) return null
+  const milestones = data.milestones ?? (data.milestone ? [data.milestone] : [])
 
   return (
     <div className="space-y-4">
@@ -17,7 +18,7 @@ export default function ReportStatsScreen({ report, game, favoriteTeams }) {
         <StateMessage emptyText="Für dieses Spiel liegt keine auswertbare Spielerstatistik vor." />
       ) : (
         data.teams.map((team) => (
-          <TeamStats key={team.side} team={team} milestone={data.milestone} />
+          <TeamStats key={team.side} team={team} milestones={milestones} />
         ))
       )}
     </div>

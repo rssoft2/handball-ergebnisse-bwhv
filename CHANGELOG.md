@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v1.22.2
+- **40. Tor**: Wird jetzt für beide Mannschaften erkannt und in Spielbericht, Live-Ticker und Aufstellung hervorgehoben.
+
 ## v1.22.1
 - **Team-Spielplan**: Kalender-Export: Titel trägt das Liga-Kürzel voran (z. B. `[mb-BL-SR]`).
 
