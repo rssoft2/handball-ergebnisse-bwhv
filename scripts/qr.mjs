@@ -25,9 +25,13 @@ function findLanIPv4() {
   return (preferred ?? candidates[0])?.address ?? '127.0.0.1'
 }
 
-const host = process.env.HOST_IP || findLanIPv4()
-const url = `http://${host}:${port}/`
-const outFile = path.join(projectRoot, 'app-qr.png')
+function lanUrl() {
+  const host = process.env.HOST_IP || findLanIPv4()
+  return `http://${host}:${port}/`
+}
+
+const url = process.argv[2] || process.env.APP_URL || lanUrl()
+const outFile = path.join(projectRoot, 'misc', 'app-qr.png')
 
 console.log(`\nApp-Adresse: ${url}\n`)
 

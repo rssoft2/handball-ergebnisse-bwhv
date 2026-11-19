@@ -9,7 +9,7 @@ Mobile-first German web app for BWHV (org `216`) + Schwarzwald-Rhein (`246`). No
 - `npm run dev` — Vite dev server (exposed on LAN)
 - `npm run build` — production build to `dist/` (`vite build`)
 - `npm run preview` — preview build
-- `npm run qr` — print LAN QR + write `app-qr.png` (gitignored)
+- `npm run qr` — print QR for optional URL (`npm run qr -- "<url>"` / `APP_URL`), otherwise LAN; write `misc/app-qr.png` (gitignored)
 - Tests: `npx vitest run` (Vitest + RTL). Setup in `src/test/setup.js`, fixtures in `src/test/fixtures*.js`.
 
 Git: Do not push without approval!
