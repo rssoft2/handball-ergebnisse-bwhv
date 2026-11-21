@@ -1,11 +1,19 @@
 // Favoriten (Ligen, Vereine, Mannschaften) – pro Gerät/Browser in localStorage.
 // Kein Backend: die Daten liegen ausschließlich lokal vor.
 
+import { DEFAULT_BEZIRK } from '../config.js'
+
 export const FAVORITES_STORAGE_KEY = 'h4a:favorites:v1'
 
 export const EMPTY_FAVORITES = { leagues: [], clubs: [], teams: [] }
 
 const key = (value) => String(value ?? '').trim().toLowerCase()
+
+// Alte Favoriten ohne Bezirk stammen aus der Zeit vor der Bezirksauswahl.
+function storedRegion(value) {
+  if (value === undefined || value === null) return DEFAULT_BEZIRK
+  return String(value).trim()
+}
 
 function asArray(value) {
   return Array.isArray(value) ? value : []
@@ -27,10 +35,13 @@ export function moveClub(favorites, clubId, delta) {
 }
 
 // Neue Vereine werden am Ende der clubs-Liste angehängt.
-function appendClub(favorites, clubId, clubName) {
+function appendClub(favorites, clubId, clubName, region) {
   const existing = favorites.clubs.some((c) => String(c.clubId) === String(clubId))
   if (existing) return favorites
-  return { ...favorites, clubs: [...favorites.clubs, { clubId, clubName }] }
+  return {
+    ...favorites,
+    clubs: [...favorites.clubs, { clubId, clubName, region: storedRegion(region) }],
+  }
 }
 
 // Robust gegen kaputte/ältere Einträge: nur brauchbare Objekte behalten, deduplizieren.
@@ -47,6 +58,10 @@ function normalize(raw) {
       id,
       name: String(item?.name ?? '').trim(),
       level: String(item?.level ?? '').trim(),
+      sname: String(item?.sname ?? '').trim(),
+      section: String(item?.section ?? '').trim(),
+      ageGroup: String(item?.ageGroup ?? '').trim(),
+      region: storedRegion(item?.region),
     })
   }
 
@@ -57,7 +72,7 @@ function normalize(raw) {
     const clubName = String(item?.clubName ?? '').trim()
     if (!clubId || !clubName || clubIds.has(clubId)) continue
     clubIds.add(clubId)
-    clubs.push({ clubId, clubName })
+    clubs.push({ clubId, clubName, region: storedRegion(item?.region) })
   }
 
   const teams = []
@@ -73,6 +88,10 @@ function normalize(raw) {
       name,
       leagueId,
       leagueName: String(item?.leagueName ?? '').trim(),
+      leagueLevel: String(item?.leagueLevel ?? '').trim(),
+      section: String(item?.section ?? '').trim(),
+      ageGroup: String(item?.ageGroup ?? '').trim(),
+      region: storedRegion(item?.region),
     })
   }
 
@@ -191,7 +210,15 @@ export function toggleLeague(favorites, league) {
   return {
     ...favorites,
     leagues: [
-      { id, name: String(league.name ?? '').trim(), level: String(league.level ?? '').trim() },
+      {
+        id,
+        name: String(league.name ?? '').trim(),
+        level: String(league.level ?? '').trim(),
+        sname: String(league.sname ?? '').trim(),
+        section: String(league.section ?? '').trim(),
+        ageGroup: String(league.ageGroup ?? '').trim(),
+        region: storedRegion(league.region),
+      },
       ...favorites.leagues,
     ],
   }
@@ -205,7 +232,7 @@ export function toggleClub(favorites, club) {
   if (exists) {
     return { ...favorites, clubs: favorites.clubs.filter((item) => item.clubId !== clubId) }
   }
-  return appendClub(favorites, clubId, clubName)
+  return appendClub(favorites, clubId, clubName, club.region)
 }
 
 export function toggleTeam(favorites, team) {
@@ -227,6 +254,10 @@ export function toggleTeam(favorites, team) {
         name,
         leagueId,
         leagueName: String(team?.leagueName ?? '').trim(),
+        leagueLevel: String(team?.leagueLevel ?? '').trim(),
+        section: String(team?.section ?? '').trim(),
+        ageGroup: String(team?.ageGroup ?? '').trim(),
+        region: storedRegion(team?.region),
       },
       ...favorites.teams,
     ],

@@ -1,12 +1,25 @@
 // App-Version (Anzeige im Footer)
-export const APP_VERSION = '1.22.2'
+export const APP_VERSION = '1.23.0'
 
 export const API_BASE = 'https://spo.handball4all.de/service/if_g_json.php'
 
-// Es werden ausschließlich Daten des Baden-Württembergischen HV geladen:
-// landesweite Ligen (ohne Bereich) plus die Ligen des Bereichs Schwarzwald-Rhein.
 export const ORG = '216'
-export const REGION = '246'
+
+// Bezirke des BWHV (aus `menu.org.list` der `po`-Antwort), auswählbar in der App.
+// Landesweite Ligen kommen zusätzlich immer aus `og=216` ohne `o`.
+export const DEFAULT_BEZIRK = '246'
+export const BEZIRKE = [
+  { id: '221', label: 'Bodensee-Neckar' },
+  { id: '226', label: 'Neckar-Alb' },
+  { id: '231', label: 'Neckar-Franken' },
+  { id: '236', label: 'Oberschwaben-Ostalb' },
+  { id: '241', label: 'Rhein-Neckar' },
+  { id: '246', label: 'Schwarzwald-Rhein' },
+  { id: '251', label: 'Stuttgart-Rems-Murr' },
+  { id: '256', label: 'Südbaden' },
+]
+export const BEZIRK_PARAM = 'bz'
+export const BEZIRK_STORAGE_KEY = 'h4a:bezirk'
 
 // Daten werden für diese Dauer zwischengespeichert
 export const CACHE_TTL_MS = 5 * 60 * 1000

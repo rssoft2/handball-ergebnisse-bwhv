@@ -197,7 +197,7 @@ export function loadGymnasium(org, gymId) {
 /* Altersklassen                                                       */
 /* ------------------------------------------------------------------ */
 
-const AGE_ORDER = {
+export const AGE_ORDER = {
   Männer: 0,
   Frauen: 1,
   'Männliche A-Jugend': 2,
@@ -271,12 +271,12 @@ function sectionOf(ageGroup) {
   return null
 }
 
-function sectionRank(section) {
+export function sectionRank(section) {
   const index = SECTION_ORDER.indexOf(section)
   return index === -1 ? SECTION_ORDER.length : index
 }
 
-function levelRank(level) {
+export function levelRank(level) {
   const index = LEVEL_ORDER.indexOf(level)
   return index === -1 ? LEVEL_ORDER.length : index
 }
@@ -452,8 +452,9 @@ function normalizeLeague(payload) {
 /* ------------------------------------------------------------------ */
 
 async function fetchClassList(org, region) {
+  const scope = region ? String(region) : ''
   const params = { cmd: 'po', og: org }
-  if (region) params.o = region
+  if (scope) params.o = scope
   const payload = await getJson(params)
   const classes = payload.content?.classes ?? []
   return classes.map((c) => {
@@ -466,6 +467,7 @@ async function fetchClassList(org, region) {
       level: trim(c.gClassLevelName),
       ageGroup,
       section: sectionOf(ageGroup),
+      region: scope,
     }
   })
 }
@@ -594,14 +596,23 @@ function sortScheduleGames(games) {
 
 // Alle Spiele einer Kalenderwoche (Mo–So). `dateIso` ist ein beliebiger Tag der
 // Woche; die API liefert die Woche, in der das Datum liegt. Landesweite und
-// regionale Übersicht sind getrennt, daher beide laden und zusammenführen.
-export async function fetchScheduleByDate(org, region, dateIso, force = false) {
+// regionale Übersichten sind getrennt, daher landesweit + eine Anfrage je
+// Region laden und zusammenführen. `regions` kann eine einzelne Region oder
+// eine Liste sein (für Favoriten aus mehreren Bezirken).
+export async function fetchScheduleByDate(org, regions, dateIso, force = false) {
   if (!dateIso) return { games: [], weekStart: dateIso, weeks: [] }
+  const regionList = (Array.isArray(regions) ? regions : regions ? [regions] : [])
+    .map((value) => trim(value))
+    .filter(Boolean)
+  const uniqueRegions = [...new Set(regionList)].sort()
+  const regionKey = uniqueRegions.join('+') || 'all'
   return getCached(
-    `week:${org}:${region ?? 'all'}:${dateIso}`,
+    `week:${org}:${regionKey}:${dateIso}`,
     async () => {
       const params = [{ cmd: 'po', og: org, do: dateIso }]
-      if (region) params.push({ cmd: 'po', og: org, do: dateIso, o: region })
+      for (const region of uniqueRegions) {
+        params.push({ cmd: 'po', og: org, do: dateIso, o: region })
+      }
 
       // Nacheinander mit kleiner Pause statt parallel – die API drosselt
       // gleichzeitige Aufrufe schnell.
@@ -845,6 +856,7 @@ export async function fetchClubTeams(org, club, options = {}) {
       if (byTeam.has(id)) continue
       byTeam.set(id, {
         teamName,
+        clubId: club.clubId,
         leagueId: entry.leagueId,
         leagueName: entry.leagueName,
         leagueLevel: entry.leagueLevel,

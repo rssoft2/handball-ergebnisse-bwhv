@@ -2,7 +2,7 @@
 
 ## What this is
 
-Mobile-first German web app for BWHV (org `216`) + Schwarzwald-Rhein (`246`). No backend — browser calls the public handball4all JSON API directly. Spielberichte come via `r.jina.ai` (CORS-friendly text). **HSG Ettlingen** is highlighted everywhere.
+Mobile-first German web app for BWHV (org `216`) with a Bezirk selector (default Schwarzwald-Rhein, `246`). No backend — browser calls the public handball4all JSON API directly. Spielberichte come via `r.jina.ai` (CORS-friendly text). **HSG Ettlingen** is highlighted everywhere.
 
 ## Commands
 
@@ -22,11 +22,11 @@ Do not use "grep" or "tail" or "head" or "awk" or any other bash commands, use t
 
 React 19 + Vite 8 (`base: './'`), Tailwind CSS v4 via `@tailwindcss/vite` (no
 `tailwind.config`; theme lives in `src/index.css`). Plain JS/JSX (no TypeScript). State
-is local React state + a tiny cache; no router (screens via state, league in URL `?cl=`).
+is local React state + a tiny cache; no router (screens via state, league in URL `?cl=`, Bezirk in `?bz=`).
 
 ## Structure
 
-- `src/config.js` — `API_BASE`, `ORG`, `REGION`, cache TTLs (+ `LEAGUE_STATS_*`), `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
+- `src/config.js` — `API_BASE`, `ORG`, `DEFAULT_BEZIRK`/`BEZIRKE`, cache TTLs (+ `LEAGUE_STATS_*`), `REPORT_BASE`/`REPORT_PROXY_BASE`, zeitliche Statuslogik
 - `src/api/h4a.js` — all HTTP + normalization + cache + age/section grouping
 - `src/api/reports.js` — Spielberichte: Text über Jina holen + parsen (Meta, Spielerstatistik, Spielverlauf)
 - `src/api/reportStore.js` — dauerhafter IndexedDB-Cache für Spielberichte (geparst + Rohtext, Parser-Version, localStorage-Migration)
@@ -40,6 +40,7 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/hooks/useLeagueStats.js` — Tore/Strafen einer Liga oder eines Teams (nur bei sichtbarem Screen)
 - `src/hooks/useGymResin.js` — Haftmittel-Regel (`wax`) einer Halle laden (Cache/Queue)
 - `src/utils/format.js` — date helpers (`parseGameDate`, `startOfDaysAgo`, …)
+- `src/utils/bezirk.js` — Bezirk aus URL/localStorage lesen, speichern und Label auflösen
 - `src/utils/spieltag.js` — Wochen-Auswahl + Gruppierung (`weekOf`, `gamesInRange`, `groupByDay`, `dayLabel`, `weekLabel`)
 - `src/utils/teams.js` — favorite matching (`isFavoriteTeam`, `normalizeTeamName`, `isSubsequence`)
 - `src/utils/teamSchedule.js` — Spielplan eines Teams aus den Liga-Spielen filtern (`scheduleForTeam`, `teamMatches`)
@@ -47,8 +48,8 @@ is local React state + a tiny cache; no router (screens via state, league in URL
 - `src/utils/download.js` — Datei-Download über Blob und `<a download>`
 - `src/utils/resin.js` — Haftmittel-Regel (`wax`) klassifizieren (`resinStatus`)
 - `src/components/` — Header, LeagueList, LeagueDetail, StandingsTable, TeamScheduleScreen, MatchList/MatchCard, StateMessage, LiveGamesView, SpielwocheView, LiveScreen, PlayerStats, ReportHeader/ReportStatsScreen/ReportTimelineScreen, LeagueStatsScreen, ResinBadge
-- `src/App.jsx` — wiring: screen state, URL `?cl=`, theme state, data loading, Bericht-Navigation
-- `scripts/qr.mjs` — LAN QR code generator
+- `src/App.jsx` — wiring: screen state, URL `?cl=` + `?bz=`, theme state, data loading, Bericht-Navigation
+- `scripts/qr.mjs` — QR code generator (optional URL via Argument/`APP_URL`, Ausgabe `misc/app-qr.png`)
 - `.github/workflows/deploy.yml` — GitHub Pages deploy
 - `misc/` — reference screenshots (7meter design)
 
@@ -67,8 +68,10 @@ Base: `https://spo.handball4all.de/service/if_g_json.php`, response is an array;
 - `cmd=gs&og=<org>&gs=<text>` → Hallensuche (`searchResult.list`, `{id,lname,postal,town,no}`, max 50)
 - `cmd=pgy&og=<org>&g=<gymId>&do=<dateIso>` → Hallen-Spielplan einer Woche (`content.gList[].games` je Liga-Gruppe; `head.name` = Halle, `menu.dt.list` = Wochen). Liga dort nur als Kurzname (`gClassSname`, `gClassLname` leer); der Langname wird in der UI über die geladene Liga-Liste aufgelöst.
 
-`fetchBwhvLeagues` merges statewide + region 246, drops leagues without a section
+`fetchBwhvLeagues` merges statewide + selected Bezirk (`DEFAULT_BEZIRK` 246; Bezirke aus
+`BEZIRKE`: 221, 226, 231, 236, 241, 246, 251, 256), drops leagues without a section
 (`sectionOf`: Inklusion/Sonstige excluded), and sorts by section → age → level → name.
+`fetchClassList` ergänzt `region` (`''` = landesweit).
 Standings rows include `pointsPlus`/`pointsMinus` (shown as `plus:minus`). Games have
 **names only** (no team ids) plus `gHomePoints`/`gGuestPoints`. `normalizeLeague` splits
 into `live`, `played` (done, newest first) and `upcoming`. `teamNameMap` ordnet die
@@ -114,9 +117,10 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
 
 ## Current state / decisions
 
-- Screens: **LeagueList** (Tabs **Auswahl** / **Live** / **Spielwoche** / **Favoriten**; Auswahl = bundesweit + Bereich 246,
-  gruppiert nach Männer / Männliche Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden /
-  Minis, durchsuchbar, alle Sektionen zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
+- Screens: **LeagueList** (Tabs **Auswahl** / **Live** / **Spielwoche** / **Favoriten**; Auswahl = landesweit +
+  gewählter Bezirk, Standard 246, Selector nur im Auswahl-Tab; gruppiert nach Männer / Männliche
+  Jugenden / Frauen / Weibliche Jugenden / Gemischte Jugenden / Minis, durchsuchbar, alle Sektionen
+  zugeklappt) → **LeagueDetail** (eine Seite: Letzte Spiele,
   Tabelle, Kommende Spiele). Letzte Spiele **absteigend** (neueste oben), initial nur die
   letzten 7 Tage, Rest per „Alle anzeigen". Tabelle mit `plus:minus`-Punkten und **Form** (letzte 5, S/U/N).
 - **Team-Spielplan**: Klick auf einen Teamnamen in der Tabelle öffnet `TeamScheduleScreen`
@@ -154,7 +158,12 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   („… 2") werden getrennt verglichen, ein Vereinsfavorit **ohne** Nummer deckt alle Mannschaften ab.
   `normalizeTeamName`/`isSubsequence` liegen dort und werden auch von `api/h4a.js` (Vereins-/
   Mannschaftszuordnung) genutzt. Kein Standard-Favorit (leerer Start), kein Export.
-- Deep-Link einer Liga via `?cl=<id>`; Zurück-Button im Header.
+  Favoriten speichern zusätzlich `region` (leer = landesweit) und Sortiermetadaten (`sname`,
+  `section`, `ageGroup`, `leagueLevel`); alte Einträge ohne `region` werden beim Laden auf
+  `DEFAULT_BEZIRK` (`246`) migriert. Damit bleiben Favoriten aus allen Bezirken in der Spielwoche
+  sichtbar und Vereins-Mannschaften auch ohne geladene Liga-Liste stabil sortiert.
+- Deep-Link einer Liga via `?cl=<id>`, Bezirk in `?bz=<id>` (Default 246, lokal gespeichert);
+  Zurück-Button im Header.
 - **Spielberichte** (Statistik + Verlauf als eigene Screens): Die PDF-URL
   (`REPORT_BASE`, `sGID`) setzt **kein CORS** → im Browser nicht direkt ladbar. Der Text kommt
   über **r.jina.ai** (`REPORT_PROXY_BASE + REPORT_BASE + sGID`, CORS-frei, ~2,5 s) mit Header
@@ -214,8 +223,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   `cmd=gs`, Cache `gymsearch:…`, `GYM_SEARCH_TTL_MS`; eigene Gruppe „Hallen") und über ein
   **Hallen-Icon neben dem Spielort** in `MatchCard`. Beim Öffnen wird die Woche des Spiels
   verwendet; Bericht/Live öffnen sich darüber und kehren per Zurück zur Halle zurück.
-- **Live-Tab** (Startseite): listet alle laufenden Spiele landesweit + Bereich 246.
-  `fetchLiveGames(org, region)` zieht die `po`-Übersichten beider Bereiche, sammelt Spiele mit
+- **Live-Tab** (Startseite): listet alle laufenden Spiele landesweit + gewählten Bezirk.
+  `fetchLiveGames(org, bezirk)` zieht die `po`-Übersichten beider Bereiche, sammelt Spiele mit
   `live === true` (inkl. Liga-Info), dedupliziert per `gID` und sortiert (Sektion → Alter → Level
   → Liga → Zeit). `useLiveGames` lädt + aktualisiert alle 30 s (`LIVE_LIST_POLL_MS`, Cache-TTL
   `LIVE_LIST_TTL_MS`), nur solange der Tab sichtbar ist. `LiveGamesView` zeigt Anzahl +
@@ -246,12 +255,14 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
 - **Spielwoche** (Startseiten-Tab): alle Spiele der Favoriten-Vereine einer Kalenderwoche
   (Mo–So, `SpielwocheView`), je Verein auf-/zuklappbar und nach Tag gruppiert. Wochen-Navigation per Pfeilen und Dropdown
   (Optionen aus `menu.dt.list` der API, `weeks` im Hook).
-  `fetchScheduleByDate(org, region, dateIso)` lädt `cmd=po&do=<dateIso>`
-  **landesweit und** mit `o=<region>` **nacheinander** (`REQUEST_GAP_MS`) und führt beide
-  Listen per `gID` zusammen – die beiden Antworten sind disjunkt (landesweite Ligen fehlen in
-  der Regional-Antwort und umgekehrt; nur zusammen ergibt sich z. B. der komplette Vereinsspieltag).
-  `useScheduleWeek` hält den Montag (`weekStart`), blättert ±7 Tage und lädt nur bei sichtbarem
-  Spielwoche-Tab. Cache `week:${org}:${region ?? 'all'}:${dateIso}` (`SCHEDULE_TTL_MS` 5 min).
+  `fetchScheduleByDate(org, regions, dateIso)` lädt `cmd=po&do=<dateIso>` **landesweit und** mit
+  `o=<region>` für **jeden Bezirk, in dem Favoriten liegen**, nacheinander (`REQUEST_GAP_MS`) und
+  führt alle Listen per `gID` zusammen – die Antworten sind disjunkt (landesweite Ligen fehlen in
+  den Regional-Antworten und umgekehrt; nur zusammen ergibt sich z. B. der komplette Vereinsspieltag).
+  `regions` ist eine Liste (sortiert, dedupliziert); der Cache-Key ist
+  `week:${org}:${regions.join('+') || 'all'}:${dateIso}`. `useScheduleWeek` hält den Montag
+  (`weekStart`), blättert ±7 Tage und lädt nur bei sichtbarem Spielwoche-Tab. Cache
+  `SCHEDULE_TTL_MS` 5 min.
 - Suche im LeagueList filtert Ligen, Vereine **und** Mannschaften (search-as-you-type; Vereine
   mit `id`=ClubID, Teams mit Liga-Label). Mannschaften kommen über die API-Suche:
   `cmd=cs&cs=<text>` (Vereinssuche, bis 50 Treffer mit `id`=ClubID) → je Verein
@@ -260,6 +271,9 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   **Merkregel**: der Suchtext steht im Parameter, der wie der Befehl heißt (`cs=<text>`).
   `searchTeams` in `api/h4a.js`; max. `MAX_CLUBS_PER_SEARCH` Vereine je Suche, ~0,6 s Pause,
   Vereine 10 min / Vereinsteams 24 h gecacht. `fetchClubTeams` ist exportiert (für Favoriten).
+  `cs`/`gs` ignorieren `o`; Vereins- und Mannschaftstreffer werden daher lokal auf Ligen des
+  gewählten Bezirks plus landesweite Ligen nachgefiltert (max. `MAX_CLUBS_PER_SEARCH` Vereine,
+  Unknown-Leagues fallen raus; Hallen bleiben unabhängig).
   **Rate-Limit**: die API drosselt sehr schnell (429/401 oder Body
   `{ "error": "Too many requests" }`). Deshalb wiederholt `getJson` gedrosselte Aufrufe
   automatisch mit Backoff (`THROTTLE_RETRIES`/`THROTTLE_BACKOFF_MS`); erst danach bricht die

@@ -26,10 +26,15 @@ function shiftWeeks(iso, delta) {
 
 // Wochenplan aller Spiele (Mo–So) für den Spielwoche-Modus im Spielplan-Tab.
 // Ein Request pro Woche; kein Polling, nur bei Bedarf/Blättern.
-export function useScheduleWeek(org, region, { enabled = true } = {}) {
+export function useScheduleWeek(org, regions, { enabled = true } = {}) {
   const [weekStart, setWeekStart] = useState(() => mondayIsoOf(new Date()))
   const [state, setState] = useState({ status: 'idle', data: null, error: null })
   const requestId = useRef(0)
+  const regionKey = (Array.isArray(regions) ? regions : regions ? [regions] : [])
+    .map((value) => String(value))
+    .filter(Boolean)
+    .sort()
+    .join('+')
 
   const load = useCallback(
     async (force = false) => {
@@ -37,7 +42,12 @@ export function useScheduleWeek(org, region, { enabled = true } = {}) {
       requestId.current = id
       setState((prev) => ({ status: 'loading', data: prev.data, error: null }))
       try {
-        const data = await fetchScheduleByDate(org, region, weekStart, force)
+        const data = await fetchScheduleByDate(
+          org,
+          regionKey ? regionKey.split('+') : [],
+          weekStart,
+          force,
+        )
         if (requestId.current !== id) return
         setState({ status: 'ready', data, error: null })
       } catch (error) {
@@ -49,7 +59,7 @@ export function useScheduleWeek(org, region, { enabled = true } = {}) {
         }))
       }
     },
-    [org, region, weekStart],
+    [org, regionKey, weekStart],
   )
 
   useEffect(() => {

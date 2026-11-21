@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { APP_VERSION, ORG, REGION } from './config.js'
+import { APP_VERSION, BEZIRK_PARAM, ORG, DEFAULT_BEZIRK } from './config.js'
 import { fetchBwhvLeagues, fetchLeague } from './api/h4a.js'
 import { useAsync } from './hooks/useAsync.js'
 import { useFavorites } from './hooks/useFavorites.js'
@@ -18,6 +18,12 @@ import LeagueStatsScreen from './components/LeagueStatsScreen.jsx'
 import TeamScheduleScreen from './components/TeamScheduleScreen.jsx'
 import GymScheduleScreen from './components/GymScheduleScreen.jsx'
 import { mondayIsoOf } from './utils/spieltag.js'
+import {
+  bezirkLabel,
+  readBezirkFromUrl,
+  readStoredBezirk,
+  storeBezirk,
+} from './utils/bezirk.js'
 
 function readLeagueFromUrl() {
   return new URLSearchParams(window.location.search).get('cl') || ''
@@ -31,6 +37,9 @@ function readTheme() {
 
 export default function App() {
   const [selected, setSelected] = useState(readLeagueFromUrl)
+  const [bezirk, setBezirk] = useState(
+    () => readBezirkFromUrl() || readStoredBezirk() || DEFAULT_BEZIRK,
+  )
   const [theme, setTheme] = useState(readTheme)
   const [tab, setTab] = useState('browse')
   const [reportNav, setReportNav] = useState(null)
@@ -56,9 +65,14 @@ export default function App() {
     const params = new URLSearchParams(window.location.search)
     if (selected) params.set('cl', selected)
     else params.delete('cl')
+    params.set(BEZIRK_PARAM, bezirk)
     const qs = params.toString()
     window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
-  }, [selected])
+  }, [selected, bezirk])
+
+  useEffect(() => {
+    storeBezirk(bezirk)
+  }, [bezirk])
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
@@ -73,18 +87,39 @@ export default function App() {
     setGymNav(null)
   }, [selected])
 
-  const leagues = useAsync(() => fetchBwhvLeagues(ORG, REGION), [ORG, REGION])
+  // Bezirke, in denen Favoriten liegen – für den Spielwoche-Request. Favoriten
+  // ohne Bezirk werden von `useFavorites` auf den Standardbezirk migriert.
+  const favoriteRegions = useMemo(() => {
+    const regions = new Set()
+    for (const list of [
+      favorites.favorites.leagues,
+      favorites.favorites.clubs,
+      favorites.favorites.teams,
+    ]) {
+      for (const item of list ?? []) {
+        const region = String(item?.region ?? '').trim()
+        if (region) regions.add(region)
+      }
+    }
+    return [...regions].sort()
+  }, [favorites.favorites])
+
+  const leagues = useAsync(() => fetchBwhvLeagues(ORG, bezirk), [ORG, bezirk])
   const detail = useAsync(
     (force) => fetchLeague(ORG, selected, force),
     [selected],
     Boolean(selected),
   )
   // Nur laden/aktualisieren, solange der Live-Tab der Startseite sichtbar ist.
-  const liveGames = useLiveGames(ORG, REGION, tab === 'live' && !selected && !liveNav)
+  const liveGames = useLiveGames(
+    ORG,
+    bezirk,
+    tab === 'live' && !selected && !liveNav,
+  )
 
   // Spielwoche: alle Spiele der Favoriten-Vereine (Mo–So), nur laden, wenn der
   // Spielwoche-Tab sichtbar ist.
-  const scheduleWeek = useScheduleWeek(ORG, REGION, {
+  const scheduleWeek = useScheduleWeek(ORG, favoriteRegions, {
     enabled:
       tab === 'spielwoche' &&
       !selected &&
@@ -148,7 +183,9 @@ export default function App() {
   const teamStatsLabel = teamStatsTab === 'penalties' ? 'Strafen' : 'Torschützen'
   const data = detail.data
   const selectedLeague = selected
-    ? leagues.data?.find((l) => l.id === selected)
+    ? leagues.data?.find((l) => l.id === selected) ??
+      favorites.favorites.leagues?.find((l) => l.id === selected) ??
+      null
     : null
 
   const currentLeague = selected
@@ -156,6 +193,10 @@ export default function App() {
         id: String(selected),
         name: data?.meta?.name || selectedLeague?.name || '',
         level: selectedLeague?.level || '',
+        sname: selectedLeague?.sname || '',
+        section: selectedLeague?.section || '',
+        ageGroup: selectedLeague?.ageGroup || '',
+        region: selectedLeague?.region ?? '',
       }
     : null
 
@@ -205,7 +246,7 @@ export default function App() {
                       ? data?.meta
                       : {
                           name: 'Handball-Ergebnisse',
-                          subtitle: 'Baden-Württemberg · Bezirk Schwarzwald Rhein',
+                          subtitle: `Baden-Württemberg · Bezirk ${bezirkLabel(bezirk)}`,
                         }
         }
         onBack={
@@ -355,6 +396,8 @@ export default function App() {
             onRetry={leagues.reload}
             tab={tab}
             onTabChange={setTab}
+            bezirk={bezirk}
+            onBezirkChange={setBezirk}
             favorites={favorites.favorites}
             favoriteTeams={favorites.favoriteTeams}
             liveGames={liveGames.data}

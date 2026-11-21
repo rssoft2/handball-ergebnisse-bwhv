@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { searchGyms, searchTeams } from '../api/h4a.js'
-import { ORG } from '../config.js'
+import { BEZIRKE, ORG } from '../config.js'
+import { normalizeTeamName } from '../utils/teams.js'
 import FavoriteStar from './FavoriteStar.jsx'
 import FavoritesView from './FavoritesView.jsx'
 import LiveGamesView from './LiveGamesView.jsx'
@@ -22,6 +23,11 @@ function ChevronRight() {
       <path d="M9 18l6-6-6-6" />
     </svg>
   )
+}
+
+function sameClub(team, club) {
+  if (team.clubId) return String(team.clubId) === String(club.clubId)
+  return normalizeTeamName(team.clubName || team.teamName) === normalizeTeamName(club.clubName)
 }
 
 function LeagueRow({ league, onSelect, starred, onToggleStar }) {
@@ -184,6 +190,8 @@ export default function LeagueList({
   onRetry,
   tab,
   onTabChange,
+  bezirk,
+  onBezirkChange,
   favorites,
   favoriteTeams,
   liveGames,
@@ -236,6 +244,11 @@ export default function LeagueList({
     )
   }, [leagues, q])
 
+  const leagueById = useMemo(
+    () => new Map(leagues.map((league) => [String(league.id), league])),
+    [leagues],
+  )
+
   // Mannschaften über Vereine suchen: Suchbegriff → Vereine (`cs`) → deren
   // Mannschaften samt Liga (`pcu`). Kurz entprellt, Ergebnisse nach dem Laden.
   const [teamState, setTeamState] = useState({
@@ -247,6 +260,33 @@ export default function LeagueList({
 
   // Hallen über `gs` suchen (ein einzelner, leichter Aufruf).
   const [gymState, setGymState] = useState({ status: 'idle', gyms: [] })
+
+  // `cs` kennt keinen Bezirksfilter. Die Treffer daher lokal auf Ligen des
+  // gewählten Bezirks und landesweite Ligen nachfiltern.
+  const regionOfLeague = (leagueId) => {
+    const league = leagueById.get(String(leagueId))
+    if (!league) return ''
+    return league.region || ''
+  }
+  const inScope = (leagueId) => {
+    const league = leagueById.get(String(leagueId))
+    // Unbekannte Ligen gehören nicht zum geladenen Bezirk; landesweite Ligen
+    // haben eine leere `region` und sind immer enthalten.
+    if (!league) return false
+    return !league.region || league.region === bezirk
+  }
+  const visibleTeams = useMemo(
+    () => teamState.teams.filter((team) => inScope(team.leagueId)),
+    [teamState.teams, leagueById, bezirk],
+  )
+  const visibleClubs = useMemo(
+    () => teamState.clubs.filter((club) => visibleTeams.some((team) => sameClub(team, club))),
+    [teamState.clubs, visibleTeams],
+  )
+  const regionOfClub = (club) => {
+    const team = visibleTeams.find((item) => sameClub(item, club))
+    return team ? regionOfLeague(team.leagueId) || bezirk : bezirk
+  }
 
   useEffect(() => {
     if (q.length < 2) {
@@ -304,8 +344,8 @@ export default function LeagueList({
           favorites={favorites}
           leagues={leagues}
           onSelect={onSelect}
-onToggleLeague={toggleLeague}
-           onToggleClub={toggleClub}
+          onToggleLeague={toggleLeague}
+          onToggleClub={toggleClub}
            onToggleTeam={toggleTeam}
            onMoveClub={onMoveClub}
         />
@@ -340,6 +380,41 @@ onToggleLeague={toggleLeague}
         />
       ) : (
         <>
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="bezirk-select"
+              className="shrink-0 text-xs font-semibold uppercase tracking-[0.06em] text-muted"
+            >
+              Bezirk
+            </label>
+            <div className="relative min-w-0 flex-1">
+              <select
+                id="bezirk-select"
+                value={bezirk}
+                onChange={(event) => onBezirkChange(event.target.value)}
+                className="w-full appearance-none rounded-xl border border-line bg-surface py-2 pl-3 pr-9 text-sm text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accentsoft"
+              >
+                {BEZIRKE.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </div>
+          </div>
+
           <div className="relative">
             <svg
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
@@ -418,14 +493,16 @@ onToggleLeague={toggleLeague}
                     Handball4all drosselt gerade die Anfragen. Bitte einen Moment warten und
                     erneut suchen.
                   </p>
-                ) : teamState.clubs.length > 0 ? (
+                ) : visibleClubs.length > 0 ? (
                   <Card>
-                    {teamState.clubs.map((club) => (
+                    {visibleClubs.map((club) => (
                       <ClubRow
                         key={club.clubId}
                         club={club}
                         starred={isClubFavorite(club.clubName)}
-                        onToggleStar={toggleClub}
+                        onToggleStar={(value) =>
+                          toggleClub({ ...value, region: regionOfClub(value) })
+                        }
                       />
                     ))}
                   </Card>
@@ -444,16 +521,18 @@ onToggleLeague={toggleLeague}
                     Handball4all drosselt gerade die Anfragen. Bitte einen Moment warten und
                     erneut suchen.
                   </p>
-                ) : teamState.teams.length > 0 ? (
+                ) : visibleTeams.length > 0 ? (
                   <div className="space-y-2">
                     <Card>
-                      {teamState.teams.map((team) => (
+                      {visibleTeams.map((team) => (
                         <TeamRow
                           key={`${team.leagueId}:${team.teamName}`}
                           team={team}
                           onSelect={onSelect}
                           starred={isTeamFavorite(team.teamName, team.leagueId)}
-                          onToggleStar={toggleTeam}
+                          onToggleStar={(value) =>
+                            toggleTeam({ ...value, region: regionOfLeague(value.leagueId) })
+                          }
                         />
                       ))}
                     </Card>

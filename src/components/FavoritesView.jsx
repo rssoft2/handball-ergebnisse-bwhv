@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react'
-import { fetchClubTeams, isThrottled } from '../api/h4a.js'
+import {
+  AGE_ORDER,
+  fetchClubTeams,
+  isThrottled,
+  levelRank,
+  sectionRank,
+} from '../api/h4a.js'
 import { ORG } from '../config.js'
 import ClubLogo from './ClubLogo.jsx'
 import FavoriteStar from './FavoriteStar.jsx'
@@ -96,13 +102,22 @@ function ClubRow({ club, onSelect, onToggle, orderByLeague, sortMode = false, on
   // Mannschaften in der Reihenfolge der Auswahlliste (Liga-Sortierung), innerhalb
   // einer Liga nach Namen.
   const teams = useMemo(() => {
-    const rank = (team) => {
-      const index = orderByLeague.get(String(team.leagueId))
-      return index === undefined ? Number.MAX_SAFE_INTEGER : index
-    }
+    const UNKNOWN = Number.MAX_SAFE_INTEGER
+    const rank = (team) => orderByLeague.get(String(team.leagueId)) ?? UNKNOWN
+    const fallbackRank = (team) =>
+      sectionRank(team.section) * 10000 +
+      (AGE_ORDER[team.ageGroup] ?? 99) * 100 +
+      levelRank(team.leagueLevel)
     return [...state.teams].sort((a, b) => {
-      const diff = rank(a) - rank(b)
-      if (diff !== 0) return diff
+      const ra = rank(a)
+      const rb = rank(b)
+      if (ra !== rb) return ra - rb
+      if (ra !== UNKNOWN) return a.teamName.localeCompare(b.teamName, 'de')
+      const fa = fallbackRank(a)
+      const fb = fallbackRank(b)
+      if (fa !== fb) return fa - fb
+      const ln = String(a.leagueName ?? '').localeCompare(String(b.leagueName ?? ''), 'de')
+      if (ln !== 0) return ln
       return a.teamName.localeCompare(b.teamName, 'de')
     })
   }, [state.teams, orderByLeague])
@@ -221,10 +236,16 @@ export default function FavoritesView({ favorites, leagues = [], onSelect, onTog
   const [sortMode, setSortMode] = useState(false)
 
   // Reihenfolge der Ligen wie in der Auswahlliste (Index der bereits sortierten Liste).
-  const orderByLeague = useMemo(
-    () => new Map(leagues.map((league, index) => [String(league.id), index])),
-    [leagues],
-  )
+  // Favoriten aus anderen Bezirken sind nicht darin enthalten und werden hinten
+  // anhand ihrer gespeicherten Metadaten einsortiert.
+  const orderByLeague = useMemo(() => {
+    const order = new Map(leagues.map((league, index) => [String(league.id), index]))
+    favLeagues.forEach((league, index) => {
+      const id = String(league.id)
+      if (!order.has(id)) order.set(id, leagues.length + index)
+    })
+    return order
+  }, [leagues, favLeagues])
 
   if (empty) {
     return (

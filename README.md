@@ -1,10 +1,10 @@
 # Handball-Ergebnisse BWHV
 
-Mobile-first Web-App für Handball-Ergebnisse, Spielpläne und Statistiken im Badischen Handball-Verband (BWHV) und im Bezirk Schwarzwald-Rhein. Kein Backend – die App lädt die öffentlichen Daten direkt von handball4all.
+Mobile-first Web-App für Handball-Ergebnisse, Spielpläne und Statistiken im Badischen Handball-Verband (BWHV) mit Bezirksauswahl (Standard: Schwarzwald-Rhein). Kein Backend – die App lädt die öffentlichen Daten direkt von handball4all.
 
 ## Features
 
-- Ligen, Tabellen, Spielpläne und Live-Ticker
+- Ligen, Tabellen, Spielpläne und Live-Ticker (Bezirk auswählbar)
 - Spielberichte mit Spielerstatistik und Spielverlauf
 - Spielwoche der favorisierten Vereine und Mannschaften
 - Hallen-Spielplan sowie Torschützen- und Strafenstatistiken

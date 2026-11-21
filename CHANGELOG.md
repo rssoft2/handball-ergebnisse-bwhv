@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.23.0
+- **Bezirksauswahl**: Im Auswahl-Tab lässt sich der Bezirk wählen (Standard: Schwarzwald-Rhein). Ligen und Live-Spiele folgen der Auswahl, der Header zeigt den Bezirk.
+- **Suche**: Vereins- und Mannschaftstreffer werden auf den gewählten Bezirk plus landesweite Ligen nachgefiltert (Hallen bleiben unabhängig).
+- **Favoriten und Spielwoche**: Favoriten speichern ihren Bezirk; bestehende Favoriten werden auf Schwarzwald-Rhein migriert. Die Spielwoche lädt alle Bezirke, in denen Favoriten liegen, und zeigt Mannschaften aus fremden Ligen sortiert nach gespeicherten Liga-Metadaten.
+
 ## v1.22.2
 - **40. Tor**: Wird jetzt für beide Mannschaften erkannt und in Spielbericht, Live-Ticker und Aufstellung hervorgehoben.
 

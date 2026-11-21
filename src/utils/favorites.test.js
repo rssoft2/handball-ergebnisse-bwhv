@@ -5,6 +5,8 @@ import {
   moveClub,
   saveFavorites,
   toggleClub,
+  toggleLeague,
+  toggleTeam,
 } from './favorites.js'
 
 describe('Favoriten-Speicher', () => {
@@ -15,7 +17,7 @@ describe('Favoriten-Speicher', () => {
   it('lädt einen gespeicherten Verein nach einem Neustart', () => {
     const favorites = {
       leagues: [],
-      clubs: [{ clubId: '42', clubName: 'TV Malsch' }],
+      clubs: [{ clubId: '42', clubName: 'TV Malsch', region: '246' }],
       teams: [],
     }
 
@@ -38,7 +40,7 @@ describe('Favoriten-Speicher', () => {
 
     const favorites = {
       leagues: [],
-      clubs: [{ clubId: '42', clubName: 'TV Malsch' }],
+      clubs: [{ clubId: '42', clubName: 'TV Malsch', region: '246' }],
       teams: [],
     }
 
@@ -53,9 +55,9 @@ describe('Vereinssortierung', () => {
   const makeFavorites = () => ({
     leagues: [],
     clubs: [
-      { clubId: '1', clubName: 'Erster' },
-      { clubId: '2', clubName: 'Zweiter' },
-      { clubId: '3', clubName: 'Dritter' },
+      { clubId: '1', clubName: 'Erster', region: '246' },
+      { clubId: '2', clubName: 'Zweiter', region: '246' },
+      { clubId: '3', clubName: 'Dritter', region: '246' },
     ],
     teams: [],
   })
@@ -90,5 +92,66 @@ describe('Vereinssortierung', () => {
       'Dritter',
       'Vierter',
     ])
+  })
+})
+
+describe('Bezirk-Metadaten', () => {
+  it('migriert alte Favoriten ohne Bezirk auf den Standardbezirk', () => {
+    window.localStorage.setItem(
+      FAVORITES_STORAGE_KEY,
+      JSON.stringify({
+        leagues: [{ id: '1', name: 'Alt', level: 'Kreisliga' }],
+        clubs: [{ clubId: '42', clubName: 'Alter Verein' }],
+        teams: [{ name: 'Altmannschaft', leagueId: '1', leagueName: 'Alt' }],
+      }),
+    )
+
+    const favorites = loadFavorites()
+    expect(favorites.leagues[0].region).toBe('246')
+    expect(favorites.clubs[0].region).toBe('246')
+    expect(favorites.teams[0].region).toBe('246')
+  })
+
+  it('behält einen gespeicherten leeren Bezirk für landesweite Ligen', () => {
+    window.localStorage.setItem(
+      FAVORITES_STORAGE_KEY,
+      JSON.stringify({ leagues: [{ id: '1', name: 'Land', level: 'Oberliga', region: '' }] }),
+    )
+
+    expect(loadFavorites().leagues[0].region).toBe('')
+  })
+
+  it('speichert Bezirk und Sortiermetadaten bei neuen Favoriten', () => {
+    let favorites = toggleLeague(
+      { leagues: [], clubs: [], teams: [] },
+      {
+        id: '9',
+        name: 'Bezirksliga',
+        level: 'Bezirksliga',
+        sname: 'bBL',
+        section: 'Männer',
+        ageGroup: 'Männer',
+        region: '221',
+      },
+    )
+    favorites = toggleClub(favorites, { clubId: '7', clubName: 'Verein', region: '221' })
+    favorites = toggleTeam(favorites, {
+      name: 'Team',
+      leagueId: '9',
+      leagueName: 'Bezirksliga',
+      leagueLevel: 'Bezirksliga',
+      section: 'Männer',
+      ageGroup: 'Männer',
+      region: '221',
+    })
+
+    expect(favorites.leagues[0]).toMatchObject({ region: '221', sname: 'bBL' })
+    expect(favorites.clubs[0]).toMatchObject({ region: '221' })
+    expect(favorites.teams[0]).toMatchObject({
+      region: '221',
+      leagueLevel: 'Bezirksliga',
+      section: 'Männer',
+      ageGroup: 'Männer',
+    })
   })
 })
