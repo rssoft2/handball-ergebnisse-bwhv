@@ -84,6 +84,37 @@ describe('SpielwocheView', () => {
     expect(screen.getByText('TSV Calw')).toBeInTheDocument()
   })
 
+  it('klappt einzelne Tage unabhängig auf und zu', async () => {
+    const user = userEvent.setup()
+    const multiDayData = {
+      weekStart,
+      games: [
+        game('g1', 'HSG Ettlingen', 'TSV Calw', local(2026, 10, 21)),
+        game('g2', 'HSG Ettlingen', 'TSV Zweitgegner', local(2026, 10, 23)),
+      ],
+    }
+    render(
+      <SpielwocheView
+        clubs={[{ clubId: '1', clubName: 'HSG Ettlingen' }]}
+        status="ready"
+        data={multiDayData}
+        weekStart={weekStart}
+      />,
+    )
+    expect(screen.getByText('TSV Calw')).toBeInTheDocument()
+    expect(screen.getByText('TSV Zweitgegner')).toBeInTheDocument()
+
+    const day = screen.getByRole('button', { name: /21\.10\.2026/ })
+    expect(day).toHaveAttribute('aria-expanded', 'true')
+    await user.click(day)
+    expect(screen.queryByText('TSV Calw')).not.toBeInTheDocument()
+    expect(screen.getByText('TSV Zweitgegner')).toBeInTheDocument()
+    expect(day).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(day)
+    expect(screen.getByText('TSV Calw')).toBeInTheDocument()
+  })
+
   it('blättert zwischen Wochen', async () => {
     const user = userEvent.setup()
     const onPrevWeek = vi.fn()

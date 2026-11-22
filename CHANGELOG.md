@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v1.23.1
+- **Spielwoche**: Die einzelnen Tage sind jetzt wie die Vereine auf- und zuklappbar.
+
 ## v1.23.0
 - **Bezirksauswahl**: Im Auswahl-Tab lässt sich der Bezirk wählen (Standard: Schwarzwald-Rhein). Ligen und Live-Spiele folgen der Auswahl, der Header zeigt den Bezirk.
 - **Suche**: Vereins- und Mannschaftstreffer werden auf den gewählten Bezirk plus landesweite Ligen nachgefiltert (Hallen bleiben unabhängig).

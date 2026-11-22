@@ -84,7 +84,7 @@ function clubGamesOf(club, games) {
 }
 
 // Spielwoche: alle Spiele der favorisierten Vereine/Mannschaften innerhalb einer
-// Kalenderwoche (Mo–So), je Verein auf-/zuklappbar und nach Tag gruppiert.
+// Kalenderwoche (Mo–So), je Verein und Tag auf-/zuklappbar.
 export default function SpielwocheView({
   clubs = [],
   teams = [],
@@ -103,6 +103,10 @@ export default function SpielwocheView({
   onOpenGym,
 }) {
   const [collapsed, setCollapsed] = useState({})
+
+  function toggleCollapsed(key, isOpen) {
+    setCollapsed((prev) => ({ ...prev, [key]: isOpen }))
+  }
 
   const clubList = Array.isArray(clubs) ? clubs : []
   const teamList = Array.isArray(teams) ? teams : []
@@ -264,9 +268,7 @@ export default function SpielwocheView({
           >
             <button
               type="button"
-              onClick={() =>
-                setCollapsed((prev) => ({ ...prev, [group.clubId]: isOpen }))
-              }
+              onClick={() => toggleCollapsed(group.clubId, isOpen)}
               aria-expanded={isOpen}
               className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition hover:bg-surface2"
             >
@@ -285,23 +287,46 @@ export default function SpielwocheView({
 
             {isOpen ? (
               <div className="space-y-2.5 border-t border-line px-2 py-2.5 sm:px-3">
-                {groupByDay(group.games).map((day) => (
-                  <div key={day.date.getTime()} className="space-y-2.5">
-                    <h3 className="px-1 font-head text-xs font-semibold uppercase tracking-[0.06em] text-accent">
-                      {dayLabel(day.date)}
-                    </h3>
-                    {day.games.map((game) => (
-                      <MatchCard
-                        key={game.id}
-                        game={game}
-                        onOpenReport={onOpenReport}
-                        onOpenLive={onOpenLive}
-                        onOpenLeague={onOpenLeague}
-                        onOpenGym={onOpenGym}
-                      />
-                    ))}
-                  </div>
-                ))}
+                {groupByDay(group.games).map((day) => {
+                  const dayKey = `day:${group.clubId}:${day.date.getTime()}`
+                  const dayOpen = !collapsed[dayKey]
+                  return (
+                    <div key={dayKey} className="overflow-hidden rounded-xl border border-line">
+                      <button
+                        type="button"
+                        onClick={() => toggleCollapsed(dayKey, dayOpen)}
+                        aria-expanded={dayOpen}
+                        className="flex w-full items-center gap-2 px-2.5 py-2 text-left transition hover:bg-surface2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-head text-xs font-semibold uppercase tracking-[0.06em] text-accent">
+                            {dayLabel(day.date)}
+                          </div>
+                          <div className="text-xs text-muted tabular-nums">
+                            {day.games.length} {day.games.length === 1 ? 'Spiel' : 'Spiele'}
+                          </div>
+                        </div>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-faint transition-transform ${dayOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      {dayOpen ? (
+                        <div className="space-y-2.5 border-t border-line px-2 py-2.5">
+                          {day.games.map((game) => (
+                            <MatchCard
+                              key={game.id}
+                              game={game}
+                              onOpenReport={onOpenReport}
+                              onOpenLive={onOpenLive}
+                              onOpenLeague={onOpenLeague}
+                              onOpenGym={onOpenGym}
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
             ) : null}
           </section>

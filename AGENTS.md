@@ -253,8 +253,8 @@ Offizielle Seite: **direkt** `ticker/index.html?token=` verlinken (Dojo-App, kei
   `teams.home/away.players`. `normalizeTeam` filtert
   Offizielle (Buchstaben als `player_no`) heraus und sortiert nach Nummer.
 - **Spielwoche** (Startseiten-Tab): alle Spiele der Favoriten-Vereine einer Kalenderwoche
-  (Mo–So, `SpielwocheView`), je Verein auf-/zuklappbar und nach Tag gruppiert. Wochen-Navigation per Pfeilen und Dropdown
-  (Optionen aus `menu.dt.list` der API, `weeks` im Hook).
+  (Mo–So, `SpielwocheView`), je Verein **und Tag** auf-/zuklappbar (gleicher Header mit Chevrons).
+  Wochen-Navigation per Pfeilen und Dropdown (Optionen aus `menu.dt.list` der API, `weeks` im Hook).
   `fetchScheduleByDate(org, regions, dateIso)` lädt `cmd=po&do=<dateIso>` **landesweit und** mit
   `o=<region>` für **jeden Bezirk, in dem Favoriten liegen**, nacheinander (`REQUEST_GAP_MS`) und
   führt alle Listen per `gID` zusammen – die Antworten sind disjunkt (landesweite Ligen fehlen in
